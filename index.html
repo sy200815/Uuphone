@@ -80,20 +80,19 @@ body {
 
 
 /* ==========================================
-   弹出面板通用
+   弹出面板通用 (高性能杂志风重构)
    ========================================== */
 .panel {
   position: absolute;
   inset: 0;
-  z-index: 50;
-  background: rgba(0, 0, 0, .35);
-  backdrop-filter: blur(6px);
+  z-index: 10000 !important;
+  background: rgba(0, 0, 0, 0.65); /* 摒弃高斯模糊，使用纯黑高透，性能满分且有景深感 */
   display: flex;
   align-items: center;
   justify-content: center;
   opacity: 0;
   pointer-events: none;
-  transition: opacity .3s;
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .panel.open {
@@ -103,14 +102,18 @@ body {
 
 .panel-box {
   width: calc(100% - 40px);
-  max-height: 75%;
+  max-width: 420px;
+  max-height: 85%;
   overflow-y: auto;
-  background: var(--bg);
-  border-radius: 24px;
-  padding: 22px 20px 28px;
-  transform: scale(.92);
-  transition: transform .3s cubic-bezier(.4, 0, .2, 1);
+  background: #FFFFFF;
+  border-radius: 40px; /* 超大圆角Bento盒 */
+  padding: 44px 28px 36px;
+  transform: translateY(30px) scale(0.95);
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   scrollbar-width: none;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.2);
+  border: 1px solid rgba(255,255,255,0.8);
+  position: relative;
 }
 
 .panel-box::-webkit-scrollbar {
@@ -118,30 +121,89 @@ body {
 }
 
 .panel.open .panel-box {
-  transform: scale(1);
+  transform: translateY(0) scale(1);
 }
 
+/* 强行接管标题：杂志主大字 */
 .panel-title {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--text);
-  margin-bottom: 18px;
-  text-align: center;
+  font-family: 'Georgia', serif;
+  font-size: 26px;
+  font-weight: 900;
+  color: #111;
+  margin-bottom: 28px;
+  text-align: left;
+  line-height: 1.1;
+  letter-spacing: 0.5px;
+  position: relative;
+}
+
+/* 伪元素做英文修饰词，极具高级感 */
+.panel-title::before {
+  content: attr(data-en);
+  display: block;
+  font-family: -apple-system, sans-serif;
+  font-size: 10px;
+  font-weight: 800;
+  color: #999;
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
 }
 
 .panel-close {
   position: absolute;
-  top: 14px;
-  right: 18px;
-  background: none;
+  top: 28px;
+  right: 28px;
+  background: #F4F4F6;
   border: none;
-  font-size: 22px;
-  color: var(--text2);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 18px;
+  color: #555;
   cursor: pointer;
-  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s, background 0.2s;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+}
+.panel-close:active {
+  transform: scale(0.85);
+  background: #EBEBEF;
 }
 
+/* 强制摧毁内联标签样式，植入杂志风小标题 */
+.panel-box div[style*="font-size:12px"], 
+.panel-box div[style*="font-size: 12px"] {
+  font-size: 11px !important;
+  color: #888 !important;
+  font-weight: 800 !important;
+  letter-spacing: 1px !important;
+  text-transform: uppercase !important;
+  margin-bottom: 10px !important;
+  font-family: -apple-system, sans-serif !important;
+}
 
+/* 所有的多选项块 (性别、可见好友、标签等) 统一变灰白气泡 */
+.gender-opt, .visible-opt, .photo-tag {
+  background: #F7F7F9 !important;
+  border: 1px solid transparent !important;
+  border-radius: 20px !important;
+  padding: 16px 20px !important;
+  color: #888 !important;
+  font-weight: 700 !important;
+  transition: all 0.2s !important;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.02) !important;
+  margin-bottom: 8px !important;
+  font-size: 14px !important;
+}
+.gender-opt.active, .visible-opt.selected, .photo-tag.active {
+  background: #2C2C2E !important;
+  color: #FFF !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1) !important;
+  transform: translateY(-2px) !important;
+}
 
 /* ==========================================
    全屏页面
@@ -158,11 +220,7 @@ body {
   height: 100%;
   overflow: hidden;
 }
-
-.fullpage.open {
-  transform: translateX(0);
-}
-
+.fullpage.open { transform: translateX(0); }
 .fp-header {
   display: flex;
   align-items: center;
@@ -170,125 +228,114 @@ body {
   padding: 12px 18px 14px;
   border-bottom: 1px solid rgba(0, 0, 0, .06);
   flex-shrink: 0;
-  margin-top: 0px;
 }
-
-.fp-back {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 4px;
-  display: flex;
-  color: var(--text);
-}
-
-.fp-back svg {
-  width: 22px;
-  height: 22px;
-}
-
-.fp-header h2 {
-  font-size: 17px;
-  font-weight: 700;
-  color: var(--text);
-}
-
-.fp-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 18px;
-  scrollbar-width: none;
-}
-
-.fp-body::-webkit-scrollbar {
-  display: none;
-}
+.fp-back { background: none; border: none; cursor: pointer; padding: 4px; display: flex; color: var(--text); }
+.fp-back svg { width: 22px; height: 22px; }
+.fp-header h2 { font-size: 17px; font-weight: 700; color: var(--text); }
+.fp-body { flex: 1; overflow-y: auto; padding: 18px; scrollbar-width: none; }
+.fp-body::-webkit-scrollbar { display: none; }
 
 /* ==========================================
-   设置条目
+   设置条目 (Bento 风格卡片化)
    ========================================== */
 .set-group {
-  background: var(--card);
-  border-radius: 18px;
-  overflow: hidden;
-  margin-bottom: 16px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, .06);
+  background: transparent;
+  border-radius: 0;
+  overflow: visible;
+  margin-bottom: 24px;
+  box-shadow: none;
 }
-
 .set-group-title {
   font-size: 11px;
-  color: var(--text2);
-  font-weight: 600;
-  letter-spacing: 1.8px;
+  color: #999;
+  font-weight: 800;
+  letter-spacing: 2px;
   text-transform: uppercase;
-  padding: 0 4px;
-  margin-bottom: 8px;
+  padding: 0 8px;
+  margin-bottom: 12px;
+  font-family: 'Georgia', serif;
 }
-
 .set-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px;
-  border-bottom: 1px solid rgba(0, 0, 0, .04);
+  padding: 18px 20px;
+  background: #FFFFFF;
+  border-radius: 24px;
+  margin-bottom: 12px;
+  border: 1px solid #F0F0F2;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.02);
+  transition: transform 0.2s;
 }
-
-.set-row:last-child {
-  border-bottom: none;
+.set-row:active {
+  transform: scale(0.97);
+  background: #FAFAFC;
 }
-
-.set-row label {
-  font-size: 14px;
-  color: var(--text);
-  font-weight: 500;
+.set-row label, .set-row div[style*="font-size:14px"] {
+  font-size: 15px !important;
+  color: #111 !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.5px;
 }
-
 .set-row .sub {
-  font-size: 11px;
-  color: var(--text2);
-  margin-top: 2px;
+  font-size: 11px !important;
+  color: #888 !important;
+  margin-top: 4px !important;
+  font-weight: 600 !important;
+}
+.set-row > svg {
+  stroke: #CCC !important;
+  width: 20px !important;
+  height: 20px !important;
 }
 
-/* 输入框 */
+/* 输入框：胶囊风胖圆角 */
 .set-input {
   width: 100%;
-  border: 1.5px solid var(--accent2);
-  border-radius: 12px;
-  padding: 10px 14px;
-  font-size: 13px;
-  color: var(--text);
-  background: var(--card2);
-  outline: none;
-  margin-top: 8px;
-  transition: border-color .2s;font-family: inherit;
+  border: 1px solid transparent !important;
+  border-radius: 20px !important;
+  padding: 18px 20px !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  color: #111 !important;
+  background: #F4F4F6 !important;
+  outline: none !important;
+  margin-top: 8px !important;
+  margin-bottom: 12px !important;
+  transition: all 0.3s !important;
+  font-family: -apple-system, sans-serif !important;
+  box-sizing: border-box !important;
 }
-
 .set-input:focus {
-  border-color: var(--accent);
+  background: #FFFFFF !important;
+  border-color: #EBEBEF !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.06) !important;
 }
-
 .set-input::placeholder {
-  color: var(--text2);
+  color: #BBB !important;
+  font-weight: 500 !important;
 }
 
-/* 保存按钮 */
+/* 核心提交按钮：纯黑深邃大胶囊 */
 .save-btn {
-  width: 100%;
-  padding: 13px;
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  border-radius: 14px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  margin-top: 12px;
-  transition: opacity .2s;
-  font-family: inherit;
+  width: 100% !important;
+  padding: 20px !important;
+  background: #2C2C2E !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 24px !important;
+  font-size: 15px !important;
+  font-weight: 900 !important;
+  letter-spacing: 2px !important;
+  text-transform: uppercase !important;
+  cursor: pointer !important;
+  margin-top: 16px !important;
+  transition: transform 0.2s, box-shadow 0.2s !important;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.12) !important;
 }
-
 .save-btn:active {
-  opacity: .8;
+  transform: scale(0.96) !important;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.08) !important;
 }
 
 /* ==========================================
@@ -3049,63 +3096,64 @@ body {
 
 /* 模块小标题：大间距的浅灰英/中文字 */
 .muji-sec-title {
-  font-size: 11px !important;
+  font-size: 10px !important;
   color: #999 !important;
   font-weight: 700 !important;
-  letter-spacing: 4px !important;
-  margin: 36px 0 12px 12px !important;
+  letter-spacing: 2px !important;
+  margin: 24px 0 8px 12px !important;
   text-transform: uppercase !important;
 }
 
-/* 超大圆角纯白雪朵卡片 */
+/* 超大圆角纯白雪朵卡片 (缩小) */
 .muji-card {
   background: #FFF !important;
-  border-radius: 36px !important;
-  box-shadow: 0 16px 40px rgba(0,0,0,0.03) !important;
-  padding: 24px 20px !important;
-  margin-bottom: 20px !important;
+  border-radius: 16px !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.03) !important;
+  padding: 16px 14px !important;
+  margin-bottom: 14px !important;
 }
 
-/* 标签与输入框：胖胖的浅灰色块 */
+/* 标签与输入框：纯白精致款 */
 .muji-label {
-  font-size: 12px !important;
+  font-size: 11px !important;
   color: #888 !important;
   font-weight: 600 !important;
-  margin-bottom: 8px !important;
+  margin-bottom: 6px !important;
 }
 .muji-card .set-input {
-  background: #F7F7F9 !important;
-  border: 1px solid transparent !important;
-  border-radius: 20px !important;
-  padding: 16px 20px !important;
+  background: #FFFFFF !important;
+  border: 1.5px solid #EBEBEF !important;
+  border-radius: 10px !important;
+  padding: 12px 14px !important;
   color: #333 !important;
-  font-size: 14.5px !important;
+  font-size: 13px !important;
   font-weight: 500 !important;
-  box-shadow: inset 0 2px 8px rgba(0,0,0,0.02) !important;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.01) !important;
   width: 100% !important;
   box-sizing: border-box !important;
-  margin-bottom: 16px !important;
+  margin-bottom: 12px !important;
   transition: all 0.2s !important;
 }
 .muji-card .set-input:focus {
   background: #FFF !important;
   border-color: #EBEBEF !important;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.06) !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.06) !important;
 }
 
-/* 按钮统一风格：深黑主按钮，浅灰副按钮 */
+/* 按钮统一风格：深黑主按钮，浅灰副按钮 (缩小) */
 .muji-card .save-btn {
   background: #2C2C2E !important;
   color: #FFF !important;
-  border-radius: 20px !important;
-  padding: 16px !important;
+  border-radius: 12px !important;
+  padding: 12px !important;
   font-weight: 700 !important;
-  letter-spacing: 2px !important;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important;
+  letter-spacing: 1px !important;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.1) !important;
   width: 100% !important;
   border: none !important;
   cursor: pointer !important;
-  margin-bottom: 12px !important;
+  margin-bottom: 10px !important;
+  font-size: 13px !important;
 }
 .muji-card .save-btn:active { transform: scale(0.97) !important; }
 .muji-card .muji-btn-light {
@@ -3115,33 +3163,34 @@ body {
 }
 .muji-btn-outline {
   background: transparent !important;
-  border: 2px dashed #EBEBEF !important;
+  border: 1.5px dashed #EBEBEF !important;
   color: #999 !important;
-  border-radius: 20px !important;
-  padding: 14px !important;
+  border-radius: 12px !important;
+  padding: 10px 12px !important;
   width: 100% !important;
   font-weight: 600 !important;
   cursor: pointer !important;
-  margin-bottom: 20px !important;
+  margin-bottom: 14px !important;
+  font-size: 13px !important;
 }
 
-/* 开关行：精简优雅 */
+/* 开关行：精简优雅 (缩小) */
 .muji-toggle-row {
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
-  padding: 18px 0 !important;
+  padding: 12px 0 !important;
   border-bottom: 1px solid #F4F4F6 !important;
 }
 .muji-toggle-row:last-child { border-bottom: none !important; }
-.muji-row-title { font-size: 15px !important; color: #222 !important; font-weight: 700 !important; }
-.muji-row-sub { font-size: 11px !important; color: #999 !important; margin-top: 4px !important; }
+.muji-row-title { font-size: 13.5px !important; color: #222 !important; font-weight: 700 !important; }
+.muji-row-sub { font-size: 10px !important; color: #999 !important; margin-top: 3px !important; }
 
-/* 开关轨道与滑块的定制 (拦截JS强制样式) */
+/* 开关轨道与滑块的定制 (缩小) */
 .muji-toggle {
-  width: 50px !important;
-  height: 30px !important;
-  border-radius: 15px !important;
+  width: 40px !important;
+  height: 24px !important;
+  border-radius: 12px !important;
   background: #EBEBEF !important;
   position: relative !important;
   transition: background 0.3s !important;
@@ -3150,40 +3199,40 @@ body {
 }
 .muji-knob {
   position: absolute !important;
-  top: 3px !important;
-  left: 3px !important;
-  width: 24px !important;
-  height: 24px !important;
+  top: 2px !important;
+  left: 2px !important;
+  width: 20px !important;
+  height: 20px !important;
   border-radius: 50% !important;
   background: #FFF !important;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
   transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
-/* JS如果写死了 left:21px，强行适配新宽度 */
-.muji-toggle [style*="left: 21px"] { left: 23px !important; }
+/* 适配新宽度 */
+.muji-toggle [style*="left: 21px"] { left: 18px !important; }
 
 
-.muji-card .screen-opts { display: flex !important; flex-direction: column !important; gap: 12px !important; }
-.muji-card .screen-opt { background: #F7F7F9 !important; border: 1px solid transparent !important; border-radius: 24px !important; padding: 16px !important; display: flex !important; align-items: center !important; gap: 14px !important; cursor: pointer !important; transition: all 0.2s !important; }
-.muji-card .screen-opt.active { background: #FFFFFF !important; border-color: #EBEBEF !important; box-shadow: 0 12px 32px rgba(0,0,0,0.05) !important; transform: scale(1.02) !important; }
-.muji-card .screen-opt-icon { background: #EBEBEF !important; border-radius: 14px !important; width: 44px !important; height: 44px !important; display: flex !important; align-items: center !important; justify-content: center !important; }
-.muji-card .screen-opt-icon svg { stroke: #555 !important; }
+.muji-card .screen-opts { display: flex !important; flex-direction: column !important; gap: 8px !important; }
+.muji-card .screen-opt { background: #F7F7F9 !important; border: 1px solid transparent !important; border-radius: 14px !important; padding: 12px !important; display: flex !important; align-items: center !important; gap: 10px !important; cursor: pointer !important; transition: all 0.2s !important; }
+.muji-card .screen-opt.active { background: #FFFFFF !important; border-color: #EBEBEF !important; box-shadow: 0 8px 20px rgba(0,0,0,0.05) !important; transform: scale(1.02) !important; }
+.muji-card .screen-opt-icon { background: #EBEBEF !important; border-radius: 10px !important; width: 34px !important; height: 34px !important; display: flex !important; align-items: center !important; justify-content: center !important; }
+.muji-card .screen-opt-icon svg { stroke: #555 !important; width: 16px !important; height: 16px !important; }
 .muji-card .screen-opt.active .screen-opt-icon { background: #2C2C2E !important; }
 .muji-card .screen-opt.active .screen-opt-icon svg { stroke: #FFF !important; }
-.muji-card .screen-opt-info h4 { color: #222 !important; font-size: 15px !important; font-weight: 700 !important; }
-.muji-card .screen-opt-info p { color: #999 !important; font-size: 11px !important; margin-top: 4px !important; }
-.muji-card .screen-check { border-color: #DDD !important; background: #FFF !important; }
+.muji-card .screen-opt-info h4 { color: #222 !important; font-size: 13px !important; font-weight: 700 !important; }
+.muji-card .screen-opt-info p { color: #999 !important; font-size: 10px !important; margin-top: 3px !important; }
+.muji-card .screen-check { border-color: #DDD !important; background: #FFF !important; width: 16px !important; height: 16px !important; }
 .muji-card .screen-opt.active .screen-check { background: #2C2C2E !important; border-color: #2C2C2E !important; }
+.muji-card .screen-opt.active .screen-check::after { font-size: 9px !important; }
 
 /* 重置小按钮 */
-.muji-btn-small { background: #F0F0F2 !important; color: #555 !important; border: none !important; border-radius: 14px !important; padding: 8px 16px !important; font-weight: 700 !important; font-size: 13px !important; cursor: pointer !important; }
+.muji-btn-small { background: #F0F0F2 !important; color: #555 !important; border: none !important; border-radius: 10px !important; padding: 6px 12px !important; font-weight: 700 !important; font-size: 11px !important; cursor: pointer !important; }
 .muji-btn-small:active { background: #E4E4E6 !important; }
 
 /* API 预设列表修复 */
-.muji-card .preset-item { background: #F7F7F9 !important; border: none !important; border-radius: 18px !important; padding: 14px 16px !important; margin-bottom: 8px !important;}
-.muji-card .preset-item.active { background: #EBEBEF !important; border-left: 4px solid #2C2C2E !important; }
-.muji-card .preset-item span { color: #222 !important; font-weight: 700 !important; }
-
+.muji-card .preset-item { background: #F7F7F9 !important; border: none !important; border-radius: 12px !important; padding: 10px 12px !important; margin-bottom: 6px !important;}
+.muji-card .preset-item.active { background: #EBEBEF !important; border-left: 3px solid #2C2C2E !important; }
+.muji-card .preset-item span { color: #222 !important; font-weight: 700 !important; font-size: 13px !important; }
 /* ==========================================
    论坛系统：日系杂志风极简 UI 大改版 (纯CSS覆盖)
    ========================================== */
@@ -3518,72 +3567,48 @@ body, .phone { background: #F6F6F8 !important; }
 }
 .cd-desktop::-webkit-scrollbar { display: none; }
 
-/* 顶部名片卡 */
+/* 顶部名片卡 (缩小圆角、完美居中对半分布) */
 .cd-profile-card {
   width: 100%;
+  height: 140px; /* 固定总高度 */
   background: #FFFFFF;
-  border-radius: 32px;
+  border-radius: 16px; /* 减小卡片的大圆角 */
   box-shadow: 0 12px 36px rgba(0,0,0,0.03);
   margin-bottom: 30px;
-  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
 }
 .cd-banner {
-  height: 130px;
+  height: 50%; /* 上半部分刚好 50% */
+  width: 100%;
   background: #E8E8EB;
   background-size: cover;
   background-position: center;
   cursor: pointer;
+  border-radius: 16px 16px 0 0;
 }
 .cd-profile-body {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding-bottom: 24px;
+  height: 50%; /* 下半部分刚好 50% 的纯白区域 */
+  width: 100%;
+  background: #FFFFFF;
+  border-radius: 0 0 16px 16px;
 }
 .cd-avatar {
-  width: 84px;
-  height: 84px;
-  border-radius: 50%;
-  border: 4px solid #FFFFFF;
+  width: 64px; /* 头像缩小 */
+  height: 64px;
+  border-radius: 14px; /* 改成圆角方形 */
   background: #D8D8DB;
   background-size: cover;
   background-position: center;
-  margin-top: -42px;
-  margin-bottom: 12px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%); /* 完美挂在中心线上 */
   cursor: pointer;
-  box-shadow: 0 6px 16px rgba(0,0,0,0.08);
-}
-.cd-name {
-  font-size: 20px;
-  font-weight: 900;
-  color: #111;
-  letter-spacing: 0.5px;
-  margin-bottom: 4px;
-  outline: none;
-}
-.cd-handle {
-  font-size: 13px;
-  color: #999;
-  font-weight: 600;
-  margin-bottom: 12px;
-  outline: none;
-}
-.cd-divider {
-  font-size: 10px;
-  color: #555;
-  letter-spacing: 2px;
-  margin-bottom: 12px;
-  outline: none;
-}
-.cd-location {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  color: #777;
-  font-weight: 700;
-  outline: none;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+  border: none; /* 彻底去掉白色边框 */
+  z-index: 2;
 }
 
 /* 中间区域布局 */
@@ -3640,18 +3665,19 @@ body, .phone { background: #F6F6F8 !important; }
   font-style: italic;
 }
 
-/* 右侧图标网格 */
-.cd-apps {
-  flex: 1;
+/* 新的桌面 App 图标网格 */
+.cd-app-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px 12px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px 12px;
+  width: 100%;
+  padding: 10px 14px;
 }
 .cd-app-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 8px; 
   cursor: pointer;
   transition: transform 0.2s;
 }
@@ -3659,14 +3685,25 @@ body, .phone { background: #F6F6F8 !important; }
   transform: scale(0.92);
 }
 .cd-app-box {
-  width: 64px;
-  height: 64px;
-  background: #FFFFFF;
-  border-radius: 22px;
-  box-shadow: 0 12px 28px rgba(0,0,0,0.04);
+  width: 48px; /* 放大到适合单页的尺寸 */
+  height: 48px;
+  background: #FFFFFF !important;
+  border-radius: 14px !important;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.05) !important;
+  border: 1px solid #F0F0F2 !important;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+}
+.cd-app-box svg {
+  width: 24px !important;
+  height: 24px !important;
+  stroke: #333 !important;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 .cd-app-item span {
   font-size: 11px;
@@ -3700,16 +3737,6 @@ body, .phone { background: #F6F6F8 !important; }
   align-items: center;
   background: transparent;
   z-index: 10;
-}
-.cd-dock-item {
-  width: 68px;
-  height: 68px;
-  background: #FFFFFF;
-  border-radius: 24px;
-  box-shadow: 0 12px 32px rgba(0,0,0,0.04);
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 /* ==========================================
@@ -4792,233 +4819,117 @@ body, .phone { background: #F6F6F8 !important; }
 <!-- 桌面容器 (全新1:1复刻版) -->
 <div class="desktop-container" id="desktopContainer" style="position: relative; width: 100%; height: 100%; display: flex; flex-direction: column;">
   <div class="pages-wrapper" style="flex: 1; display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; height: 100%; touch-action: pan-x pan-y;">
-    <!-- 第一页 -->
-    <div class="cd-desktop page-1">
-    
-      <!-- 顶部名片小组件 -->
-    <div class="cd-profile-card">
-      <div class="cd-banner" id="cdBanner" onclick="document.getElementById('cdBannerInput').click()"></div>
-      <input type="file" id="cdBannerInput" accept="image/*" style="display:none" onchange="updateCdImg(event, 'cdBanner')">
-      <div class="cd-profile-body">
-        <div class="cd-avatar" id="cdAvatar" onclick="document.getElementById('cdAvatarInput').click()"></div>
-        <input type="file" id="cdAvatarInput" accept="image/*" style="display:none" onchange="updateCdImg(event, 'cdAvatar')">
-        <div class="cd-name" contenteditable="true" onblur="saveCdText()">Ayaka</div>
-        <div class="cd-handle" contenteditable="true" onblur="saveCdText()">@すえつける</div>
-        <div class="cd-divider" contenteditable="true" onblur="saveCdText()">——————★.*˚C.+♥.*˚——————</div>
-        <div class="cd-location">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-          <span contenteditable="true" onblur="saveCdText()">Your heart</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- 中间交互区：左侧气泡 + 右侧应用 -->
-    <div class="cd-middle">
-      <!-- 左侧：碎碎念气泡 -->
-      <div class="cd-bubbles">
-        <div class="cd-bubble-deco" contenteditable="true" onblur="saveCdText()">^>////<^</div>
-        <div class="cd-bubble-row left">
-          <div class="cd-bub-av" id="cdBubAv1" onclick="document.getElementById('cdBubAv1Input').click()"></div>
-          <input type="file" id="cdBubAv1Input" accept="image/*" style="display:none" onchange="updateCdImg(event, 'cdBubAv1')">
-          <div class="cd-bub-text" contenteditable="true" onblur="saveCdText()">在做森莫傻事△..·△ฅ</div>
-        </div>
-        <div class="cd-bubble-row right">
-          <div class="cd-bub-text" contenteditable="true" onblur="saveCdText()">围着小乖转圈圈ʕ·͡ˑ·ཻʔ?</div>
-          <div class="cd-bub-av" id="cdBubAv2" onclick="document.getElementById('cdBubAv2Input').click()"></div>
-          <input type="file" id="cdBubAv2Input" accept="image/*" style="display:none" onchange="updateCdImg(event, 'cdBubAv2')">
+        <!-- 全新极简合并桌面 -->
+    <div class="cd-desktop page-main" style="display:flex; flex-direction:column; gap:20px; width:100%; padding-top: 10px;">
+      
+      <!-- 顶部：纪念日大组件 -->
+      <div style="width:100%; height:120px; background:#fff; border-radius:24px; box-shadow:0 8px 24px rgba(0,0,0,0.04); position:relative; overflow:hidden; display:flex; align-items:center; padding:24px; border: 1px solid #F0F0F2;">
+        <div id="p2Avatar1" onclick="document.getElementById('p2Av1Input').click()" style="position:absolute; inset:0; background:#E8E8EB; background-size:cover; background-position:center; opacity:0.3; cursor:pointer; transition: opacity 0.2s;"></div>
+        <input type="file" id="p2Av1Input" accept="image/*" style="display:none" onchange="updateCdImg(event, 'p2Avatar1')">
+        <div style="position:relative; z-index:2; display:flex; flex-direction:column; pointer-events: none;">
+          <span contenteditable="true" onblur="saveCdText()" style="pointer-events: auto; font-size:12px; color:#555; font-weight:700; margin-bottom:6px; outline:none; letter-spacing:1px;">✨ 我们的纪念日</span>
+          <span contenteditable="true" onblur="saveCdText()" style="pointer-events: auto; font-size:32px; color:#111; font-weight:900; font-family:'Georgia', serif; outline:none;">100 <span style="font-size:14px; font-weight:700;">Days</span></span>
         </div>
       </div>
 
-      <!-- 右侧：应用图标 -->
-      <div class="cd-apps">
+      <!-- 中间：两个小组件 (照片 + 文案) -->
+      <div style="display:flex; gap:16px; width:100%;">
+        
+        <!-- 左侧：相册照片小组件 -->
+        <div id="p2Avatar2" onclick="document.getElementById('p2Av2Input').click()" style="flex:1; aspect-ratio:1; border-radius:24px; background:#EBEBEF; background-size:cover; background-position:center; box-shadow:0 8px 24px rgba(0,0,0,0.04); cursor:pointer; position:relative; border: 1px solid #F0F0F2;">
+          <div style="position:absolute; bottom:12px; right:12px; width:28px; height:28px; background:rgba(255,255,255,0.9); backdrop-filter:blur(4px); border-radius:10px; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,0,0,0.08);">
+             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          </div>
+        </div>
+        <input type="file" id="p2Av2Input" accept="image/*" style="display:none" onchange="updateCdImg(event, 'p2Avatar2')">
+
+        <!-- 右侧：全新文案小组件 -->
+        <div style="flex:1; aspect-ratio:1; border-radius:24px; background:#FFFFFF; box-shadow:0 8px 24px rgba(0,0,0,0.04); display:flex; flex-direction:column; justify-content:space-between; padding:20px; border: 1px solid #F0F0F2; position:relative;">
+           <div style="width:32px; height:32px; background:#F4F4F6; border-radius:12px; display:flex; align-items:center; justify-content:center; margin-bottom:8px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.5"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+           </div>
+           <div contenteditable="true" onblur="saveCdText()" class="cd-widget-text" style="font-size:14px; font-weight:700; color:#333; line-height:1.5; outline:none;">
+              "保持热爱<br>奔赴山海"
+           </div>
+        </div>
+      </div>
+      
+      <!-- 下方：新版文案长条组件 -->
+      <div style="width:100%; background:linear-gradient(135deg, #2C2C2E 0%, #1A1A1A 100%); border-radius:24px; padding:20px 24px; box-shadow:0 12px 32px rgba(0,0,0,0.1); display:flex; align-items:center; justify-content:space-between;">
+          <div style="display:flex; flex-direction:column; gap:4px;">
+              <span contenteditable="true" onblur="saveCdText()" style="font-size:12px; color:rgba(255,255,255,0.6); font-weight:600; letter-spacing:1px; outline:none;">CURRENT MOOD</span>
+              <span contenteditable="true" onblur="saveCdText()" style="font-size:16px; color:#FFF; font-weight:800; letter-spacing:0.5px; outline:none;">正在认真生活中... ☕️</span>
+          </div>
+          <div style="width:40px; height:40px; border-radius:14px; background:rgba(255,255,255,0.1); backdrop-filter:blur(10px); display:flex; align-items:center; justify-content:center;">
+             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFF" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+          </div>
+      </div>
+
+      <!-- 底部：4 列并排的 APP 网格 -->
+      <div class="cd-app-grid">
         <div class="cd-app-item" onclick="openChat()">
           <div class="cd-app-box">
-            <!-- 微信风灰色气泡图标 -->
-            <svg width="36" height="36" viewBox="0 0 100 100"><path d="M50,15C30.67,15,15,28.43,15,45c0,9.39,4.98,17.76,12.8,23.36c-1.3,4.6-3.8,9.5-3.9,9.7c-0.3,0.5,0.1,1.1,0.7,0.9c4.9-1.6,9.6-4.5,13.1-7.2c3.9,1,8,1.6,12.3,1.6c19.33,0,35-13.43,35-30S69.33,15,50,15z" fill="#C4C6CC"/><circle cx="36" cy="38" r="4.5" fill="#fff"/><circle cx="64" cy="38" r="4.5" fill="#fff"/></svg>
+            <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
           </div>
           <span>聊天</span>
         </div>
         <div class="cd-app-item" onclick="openSet()">
           <div class="cd-app-box">
-            <!-- QQ风企鹅图标 -->
-            <svg width="30" height="30" viewBox="0 0 100 100"><path d="M50,10c-15.5,0-26,18-26,40c0,16,6.5,28,15,34c-4,3-6,7-4,9c3,3,10,1,15-2c0,0,0,0,0,0c0,0,0,0,0,0c5,3,12,5,15,2c2-2,0-6-4-9c8.5-6,15-18,15-34C76,28,65.5,10,50,10z" fill="#C4C6CC"/></svg>
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           </div>
           <span>设置</span>
         </div>
         <div class="cd-app-item" onclick="openForum()">
           <div class="cd-app-box">
-            <!-- 小红书文字图标 -->
-            <span style="font-size:14px;font-weight:900;color:#B0B2B8;letter-spacing:-1px">小红书</span>
+            <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           </div>
           <span>论坛</span>
         </div>
         <div class="cd-app-item" onclick="openMemoryApp()">
           <div class="cd-app-box">
-            <!-- 音乐风小网格图标 -->
-            <svg width="32" height="32" viewBox="0 0 100 100" fill="none" stroke="#C4C6CC" stroke-width="6"><rect x="15" y="15" width="20" height="20" rx="6"/><rect x="40" y="15" width="20" height="20" rx="6"/><rect x="65" y="15" width="20" height="20" rx="6"/><rect x="15" y="40" width="20" height="20" rx="6"/><rect x="40" y="40" width="20" height="20" rx="6"/><rect x="65" y="40" width="20" height="20" rx="6"/><rect x="15" y="65" width="20" height="20" rx="6"/><rect x="40" y="65" width="20" height="20" rx="6"/><rect x="65" y="65" width="20" height="20" rx="6"/></svg>
+            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
           </div>
           <span>记忆</span>
         </div>
-      </div>
-    </div>
-
-    </div> <!-- end page-1 -->
-
-    <!-- 第二页 -->
-    <div class="cd-desktop page-2">
-      <!-- Top part -->
-      <div class="p2-top" style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 30px;">
-        <div class="p2-top-left" style="display: flex; flex-direction: column; gap: 12px;">
-          <div class="p2-pill" contenteditable="true" onblur="saveCdText()" style="background: #EAEAEA; border-radius: 20px; padding: 10px 18px; font-size: 13px; color: #333; font-weight: 600; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.03); outline: none;">🎧 Keep</div>
-          <div class="p2-pill" contenteditable="true" onblur="saveCdText()" style="background: #EAEAEA; border-radius: 20px; padding: 10px 18px; font-size: 13px; color: #333; font-weight: 600; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.03); outline: none;">♥ Twilight</div>
+        <div class="cd-app-item" onclick="openMusicApp()">
+          <div class="cd-app-box">
+            <svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+          </div>
+          <span>音乐</span>
         </div>
-        <div class="p2-top-center" style="display: flex; flex-direction: column; align-items: center;">
-          <div class="p2-avatar-big" id="p2Avatar1" onclick="document.getElementById('p2Av1Input').click()" style="width: 100px; height: 100px; border-radius: 50%; background: #D8D8DB; background-size: cover; background-position: center; box-shadow: 0 6px 16px rgba(0,0,0,0.08); margin-bottom: 12px; cursor: pointer;"></div>
-          <input type="file" id="p2Av1Input" accept="image/*" style="display:none" onchange="updateCdImg(event, 'p2Avatar1')">
-          <div class="p2-music-text" contenteditable="true" onblur="saveCdText()" style="font-size: 12px; color: #555; letter-spacing: 1px; outline: none; font-weight: 600;">♪✧♫･*¨*･.♪</div>
+        <div class="cd-app-item" onclick="openDLC()">
+          <div class="cd-app-box">
+            <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          </div>
+          <span>塔罗</span>
         </div>
-        <div class="p2-top-right" style="display: flex; flex-direction: column; gap: 12px;">
-          <div class="p2-pill" contenteditable="true" onblur="saveCdText()" style="background: #EAEAEA; border-radius: 20px; padding: 10px 18px; font-size: 13px; color: #333; font-weight: 600; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.03); outline: none;">🎬 blooms</div>
-          <div class="p2-pill" contenteditable="true" onblur="saveCdText()" style="background: #EAEAEA; border-radius: 20px; padding: 10px 18px; font-size: 13px; color: #333; font-weight: 600; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.03); outline: none;">💭 bling</div>
-        </div>
-      </div>
-
-      <!-- Middle part -->
-      <div class="p2-middle" style="display: flex; width: 100%; justify-content: space-between; margin-bottom: 30px; gap: 16px;">
-        <div class="p2-mid-left" style="display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1;">
-          <div class="p2-bubble-tail" contenteditable="true" onblur="saveCdText()" style="background: #fff; padding: 12px 24px; border-radius: 24px; font-size: 18px; font-weight: 800; color: #111; box-shadow: 0 8px 24px rgba(0,0,0,0.04); position: relative; margin-bottom: 24px; outline: none; z-index: 2;">
-            周六
-            <div style="position: absolute; bottom: -6px; left: 24px; width: 16px; height: 16px; background: #fff; transform: rotate(45deg); box-shadow: 4px 4px 8px rgba(0,0,0,0.02); z-index: -1;"></div>
+        <div class="cd-app-item" onclick="openLiveSetup()">
+          <div class="cd-app-box">
+            <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>
           </div>
-          <div class="p2-avatar-big" id="p2Avatar2" onclick="document.getElementById('p2Av2Input').click()" style="width: 110px; height: 110px; border-radius: 50%; background: #D8D8DB; background-size: cover; background-position: center; box-shadow: 0 6px 16px rgba(0,0,0,0.08); cursor: pointer;"></div>
-          <input type="file" id="p2Av2Input" accept="image/*" style="display:none" onchange="updateCdImg(event, 'p2Avatar2')">
-        </div>
-        
-        <div class="p2-mid-right" style="flex: 1.2; display: grid; grid-template-columns: 1fr 1fr; gap: 16px 12px;">
-          <!-- 我的音乐 -->
-          <div class="cd-app-item" onclick="openMusicApp()">
-            <div class="p2-app-box" style="width: 72px; height: 72px; background: #FFFFFF; border-radius: 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.04); display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">
-              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#D8D8DB" stroke-width="2.5"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
-            </div>
-            <span contenteditable="true" onblur="saveCdText()" style="font-size: 11px; color: #555; font-weight: 600; outline: none;">我的音乐</span>
-          </div>
-          <!-- 修改后的 DLC 按钮 -->
-<div class="cd-app-item" onclick="openDLC()">
-  <div class="p2-app-box" style="width: 72px; height: 72px; background: #1a1a1a; border-radius: 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; margin-bottom: 8px; border: 1px solid #333;">
-    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-  </div>
-  <span style="font-size: 11px; color: #888; font-weight: 600; font-family: 'Georgia', serif; letter-spacing: 1px;">D L C</span>
-</div>
-
-          <!-- 直播 APP -->
-          <div class="cd-app-item" onclick="openLiveSetup()">
-            <div class="p2-app-box" style="width: 72px; height: 72px; background: linear-gradient(135deg, #FF3B30 0%, #FF9500 100%); border-radius: 24px; box-shadow: 0 8px 24px rgba(255,59,48,0.3); display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">
-              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#FFF" stroke-width="2.5"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>
-            </div>
-            <span style="font-size: 11px; color: #555; font-weight: 600; outline: none;">直播</span>
-          </div>
-          <!-- QQ音乐 -->
-          <div class="cd-app-item">
-            <div class="p2-app-box" style="width: 72px; height: 72px; background: #FFFFFF; border-radius: 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.04); display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">
-              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#D8D8DB" stroke-width="2.5"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
-            </div>
-            <span contenteditable="true" onblur="saveCdText()" style="font-size: 11px; color: #555; font-weight: 600; outline: none;">QQ音乐</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Bottom part -->
-      <div class="p2-bottom" style="display: flex; width: 100%; justify-content: space-between; gap: 16px; margin-bottom: 20px;">
-        <div class="p2-bot-left" style="flex: 1.2; display: grid; grid-template-columns: 1fr 1fr; gap: 16px 12px;">
-          <!-- 微信 -->
-          <div class="cd-app-item" onclick="openChat()">
-            <div class="p2-app-box" style="width: 72px; height: 72px; background: #FFFFFF; border-radius: 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.04); display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">
-              <svg width="40" height="40" viewBox="0 0 100 100"><path d="M50,15C30.67,15,15,28.43,15,45c0,9.39,4.98,17.76,12.8,23.36c-1.3,4.6-3.8,9.5-3.9,9.7c-0.3,0.5,0.1,1.1,0.7,0.9c4.9-1.6,9.6-4.5,13.1-7.2c3.9,1,8,1.6,12.3,1.6c19.33,0,35-13.43,35-30S69.33,15,50,15z" fill="#D8D8DB"/><circle cx="36" cy="38" r="4.5" fill="#fff"/><circle cx="64" cy="38" r="4.5" fill="#fff"/></svg>
-            </div>
-            <span contenteditable="true" onblur="saveCdText()" style="font-size: 11px; color: #555; font-weight: 600; outline: none;">微信</span>
-          </div>
-          <!-- 相册 -->
-          <div class="cd-app-item">
-            <div class="p2-app-box" style="width: 72px; height: 72px; background: #FFFFFF; border-radius: 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.04); display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">
-              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#D8D8DB" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-            </div>
-            <span contenteditable="true" onblur="saveCdText()" style="font-size: 11px; color: #555; font-weight: 600; outline: none;">相册</span>
-          </div>
-          <!-- 腾讯视频 改 我的音乐 -->
-          <div class="cd-app-item" onclick="openMusicApp()">
-            <div class="p2-app-box" style="width: 72px; height: 72px; background: #FFFFFF; border-radius: 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.04); display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">
-              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#D8D8DB" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
-            </div>
-            <span contenteditable="true" onblur="saveCdText()" style="font-size: 11px; color: #555; font-weight: 600; outline: none;">我的音乐</span>
-          </div>
-          <!-- 网易云音乐 -->
-          <div class="cd-app-item">
-            <div class="p2-app-box" style="width: 72px; height: 72px; background: #FFFFFF; border-radius: 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.04); display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">
-              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#D8D8DB" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="12" y1="8" x2="12" y2="2"/></svg>
-            </div>
-            <span contenteditable="true" onblur="saveCdText()" style="font-size: 11px; color: #555; font-weight: 600; outline: none;">网易云音乐</span>
-          </div>
-        </div>
-        
-        <div class="p2-bot-right" style="flex: 1.5;">
-          <div class="p2-widget" style="background: #fff; border-radius: 24px; padding: 20px 16px; box-shadow: 0 12px 32px rgba(0,0,0,0.04); display: flex; flex-direction: column; gap: 16px;">
-            <div class="p2-w-item">
-              <div style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 800; color: #111; margin-bottom: 8px;">
-                <span contenteditable="true" onblur="saveCdText()" style="outline:none">💭</span> <span contenteditable="true" onblur="saveCdText()" style="outline:none">Polaroid love ₊⁺</span>
-              </div>
-              <div style="display: flex; align-items: center; justify-content: space-between; font-size: 10px; color: #555; margin-bottom: 4px;">
-                <span contenteditable="true" onblur="saveCdText()" style="outline:none">25.00%</span>
-                <span contenteditable="true" onblur="saveCdText()" style="outline:none">2/8</span>
-              </div>
-              <div style="height: 6px; background: #F0F0F2; border-radius: 3px; overflow: hidden;">
-                <div style="width: 25%; height: 100%; background: #DCDCE0;"></div>
-              </div>
-            </div>
-            <div class="p2-w-item">
-              <div style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 800; color: #111; margin-bottom: 8px;">
-                <span contenteditable="true" onblur="saveCdText()" style="outline:none">🎧</span> <span contenteditable="true" onblur="saveCdText()" style="outline:none">On the first snow</span>
-              </div>
-              <div style="display: flex; align-items: center; justify-content: space-between; font-size: 10px; color: #555; margin-bottom: 4px;">
-                <span contenteditable="true" onblur="saveCdText()" style="outline:none">80.00%</span>
-                <span contenteditable="true" onblur="saveCdText()" style="outline:none">80/100</span>
-              </div>
-              <div style="height: 6px; background: #F0F0F2; border-radius: 3px; overflow: hidden;">
-                <div style="width: 80%; height: 100%; background: #DCDCE0;"></div>
-              </div>
-            </div>
-            <div class="p2-w-item">
-              <div style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 800; color: #111; margin-bottom: 8px;">
-                <span contenteditable="true" onblur="saveCdText()" style="outline:none">❄️</span> <span contenteditable="true" onblur="saveCdText()" style="outline:none">-snowflake°</span>
-              </div>
-              <div style="display: flex; align-items: center; justify-content: space-between; font-size: 10px; color: #555; margin-bottom: 4px;">
-                <span contenteditable="true" onblur="saveCdText()" style="outline:none">50.00%</span>
-                <span contenteditable="true" onblur="saveCdText()" style="outline:none">5/10</span>
-              </div>
-              <div style="height: 6px; background: #F0F0F2; border-radius: 3px; overflow: hidden;">
-                <div style="width: 50%; height: 100%; background: #DCDCE0;"></div>
-              </div>
-            </div>
-          </div>
+          <span>直播</span>
         </div>
       </div>
       
-    </div> <!-- end page-2 -->
+    </div> <!-- end page-main -->
+
   </div> <!-- end pages-wrapper -->
 
-  <!-- 共享的底部固定栏 (搜索 & Dock) -->
-  <div class="shared-bottom" style="position: absolute; bottom: calc(env(safe-area-inset-bottom, 12px) + 20px); left: 0; right: 0; display: flex; flex-direction: column; align-items: center; pointer-events: none; z-index: 10;">
+    <!-- 共享的底部固定栏 (搜索 & Dock) -->
+  <div class="shared-bottom" style="position: absolute; bottom: calc(env(safe-area-inset-bottom, 24px) + 55px); left: 0; right: 0; display: flex; flex-direction: column; align-items: center; pointer-events: none; z-index: 10;">
+
     <!-- 搜索小胶囊 -->
     <div class="cd-search" style="pointer-events: auto; background: #DCDCE0; border-radius: 20px; padding: 10px 24px; display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: #333; margin-bottom: 20px; box-shadow: inset 0 2px 6px rgba(0,0,0,0.02);">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
       搜索
     </div>
 
-    <!-- 底部常用 Dock 栏 -->
+    <!-- 底部常用 Dock 栏 (白底黑标小图标) -->
     <div class="cd-dock" style="position: static; pointer-events: auto; width: 100%; padding: 0 20px; box-sizing: border-box; display: flex; justify-content: space-between; align-items: center; background: transparent;">
-      <div class="cd-dock-item"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#A8AAB2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg></div>
-      <div class="cd-dock-item"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#A8AAB2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg></div>
-      <div class="cd-dock-item"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#A8AAB2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg></div>
-      <div class="cd-dock-item"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#A8AAB2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg></div>
+      <div class="cd-app-box"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg></div>
+      <div class="cd-app-box"><svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+      <div class="cd-app-box"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg></div>
+      <div class="cd-app-box"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg></div>
     </div>
   </div>
 </div>
@@ -5132,19 +5043,19 @@ body, .phone { background: #F6F6F8 !important; }
 
 <!-- API预设管理弹窗 (日系慵懒风) -->
 <div class="panel" id="panelApiPresets" onclick="if(event.target===this)closePresetModal()" style="z-index:999999;">
-  <div class="panel-box" style="background:rgba(255,255,255,0.95); backdrop-filter:blur(30px); -webkit-backdrop-filter:blur(30px); border-radius:40px; padding:36px 24px 32px; box-shadow:0 24px 60px rgba(0,0,0,0.08); border:none;">
-    <div class="panel-title" style="color:#222; font-weight:800; font-size:18px; margin-bottom:24px;">API 预设管理</div>
-    <button class="panel-close" onclick="closePresetModal()" style="background:#F0F0F2; color:#999; border-radius:50%; width:32px; height:32px; top:24px; right:24px; display:flex; align-items:center; justify-content:center; font-size:20px;">×</button>
+  <div class="panel-box" style="background:rgba(255,255,255,0.95); backdrop-filter:blur(30px); -webkit-backdrop-filter:blur(30px); border-radius:24px; padding:24px 20px; box-shadow:0 16px 40px rgba(0,0,0,0.08); border:none;">
+    <div class="panel-title" style="color:#222; font-weight:800; font-size:16px; margin-bottom:16px;">API 预设管理</div>
+    <button class="panel-close" onclick="closePresetModal()" style="background:#F0F0F2; color:#999; border-radius:50%; width:28px; height:28px; top:16px; right:16px; display:flex; align-items:center; justify-content:center; font-size:18px;">×</button>
     
-    <div style="font-size:12px;color:#888;font-weight:600;margin-bottom:12px;letter-spacing:1px;">选择或切换预设</div>
-    <div id="modalPresetList" style="display:flex;flex-direction:column;gap:10px;max-height:35vh;overflow-y:auto;margin-bottom:16px;scrollbar-width:none;"></div>
+    <div style="font-size:11px;color:#888;font-weight:600;margin-bottom:10px;letter-spacing:1px;">选择或切换预设</div>
+    <div id="modalPresetList" style="display:flex;flex-direction:column;gap:8px;max-height:35vh;overflow-y:auto;margin-bottom:16px;scrollbar-width:none;"></div>
     
-    <button onclick="addNewPresetInModal()" style="width:100%; padding:16px; border-radius:20px; border:2px dashed #EBEBEF; background:transparent; color:#999; font-weight:700; cursor:pointer; margin-bottom:24px; font-size:14px; transition:all 0.2s;" onmousedown="this.style.background='#F7F7F9'" onmouseup="this.style.background='transparent'">+ 新建预设</button>
+    <button onclick="addNewPresetInModal()" style="width:100%; padding:12px; border-radius:12px; border:1.5px dashed #EBEBEF; background:transparent; color:#999; font-weight:700; cursor:pointer; margin-bottom:16px; font-size:13px; transition:all 0.2s;" onmousedown="this.style.background='#F7F7F9'" onmouseup="this.style.background='transparent'">+ 新建预设</button>
     
-    <div style="font-size:12px;color:#888;font-weight:600;margin-bottom:8px;letter-spacing:1px;">修改当前预设名称</div>
-    <input class="set-input" id="modalPresetName" oninput="updatePresetName(this.value)" placeholder="给预设起个名字..." style="background:#F7F7F9;border:1px solid transparent;border-radius:20px;padding:18px 20px;color:#333;font-size:15px;font-weight:600;box-shadow:inset 0 2px 8px rgba(0,0,0,0.02);width:100%;box-sizing:border-box;margin-bottom:24px;outline:none;"/>
+    <div style="font-size:11px;color:#888;font-weight:600;margin-bottom:6px;letter-spacing:1px;">修改当前预设名称</div>
+    <input class="set-input" id="modalPresetName" oninput="updatePresetName(this.value)" placeholder="给预设起个名字..." style="background:#F7F7F9;border:1px solid transparent;border-radius:12px;padding:12px 14px;color:#333;font-size:13px;font-weight:600;box-shadow:inset 0 2px 6px rgba(0,0,0,0.02);width:100%;box-sizing:border-box;margin-bottom:20px;outline:none;"/>
     
-    <button class="save-btn" onclick="closePresetModal()" style="width:100%; padding:18px; border-radius:20px; border:none; background:#2C2C2E; color:#fff; font-weight:800; font-size:15px; box-shadow:0 10px 30px rgba(0,0,0,0.1); cursor:pointer; letter-spacing:1px;">完成</button>
+    <button class="save-btn" onclick="closePresetModal()" style="width:100%; padding:14px; border-radius:12px; border:none; background:#2C2C2E; color:#fff; font-weight:800; font-size:14px; box-shadow:0 8px 24px rgba(0,0,0,0.1); cursor:pointer; letter-spacing:1px;">完成</button>
   </div>
 </div>
 
@@ -5266,133 +5177,154 @@ body, .phone { background: #F6F6F8 !important; }
 </div>
 
 
-<!-- 聊天APP主框架 -->
-<div class="fullpage" id="pageChat">
-  <div class="fp-header">
-    <button class="fp-back" onclick="closeChat()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="15 18 9 12 15 6"/></svg></button>
-    <h2 id="chatTitle">消息</h2>
-    <button id="addContactBtn" onclick="openAddContact()" style="display:none;background:none;border:none;cursor:pointer;padding:4px;margin-left:auto;color:var(--text)">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg>
+<!-- 聊天APP主框架 (日系杂志风重制版) -->
+<div class="fullpage" id="pageChat" style="background:#F4F4F6; z-index:40;">
+  
+  <!-- 悬浮顶栏 -->
+  <div class="fp-header" style="position:sticky;top:0;z-index:20;background:rgba(244,244,246,0.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:none;padding-top:max(env(safe-area-inset-top, 20px), 20px);padding-bottom:16px;display:flex;align-items:center;justify-content:space-between;padding-left:24px;padding-right:24px;">
+    
+    <!-- 返回按钮 -->
+    <button onclick="closeChat()" style="background:#FFF;border:1px solid #EBEBEF;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.04);color:#555;transition:transform 0.2s;" onmousedown="this.style.transform='scale(0.9)'" onmouseup="this.style.transform='scale(1)'">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
     </button>
-    <button id="addGroupBtn" onclick="openCreateGroup()" style="display:none;background:none;border:none;cursor:pointer;padding:4px;color:var(--text)">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><circle cx="20" cy="16" r="3" fill="none"/><line x1="20" y1="14.5" x2="20" y2="17.5"/><line x1="18.5" y1="16" x2="21.5" y2="16"/></svg>
-    </button>
-  </div>
 
-
-  <!-- 消息页 -->
-  <div id="tabMsg" style="flex:1;overflow-y:auto;padding:18px;min-height:0;flex-direction:column"></div>
-
-  <!-- 联系人页 -->
-  <div id="tabContacts" style="display:none;flex:1;overflow-y:auto;padding:18px;min-height:0;flex-direction:column">
-        <div id="contactList" style="display:flex;flex-direction:column;gap:2px"></div>
-    <div id="contactEmpty" style="display:flex;flex-direction:column;align-items:center;padding:40px 0;gap:10px">
-      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="1.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-      <p style="font-size:13px;color:var(--text2)">还没有联系人</p>
+    <!-- 标题 -->
+    <h2 id="chatTitle" style="font-family:'Georgia',serif;font-size:20px;font-weight:900;color:#111;letter-spacing:1.5px;margin:0;">MESSAGES</h2>
+    
+    <!-- 右侧操作区 -->
+    <div style="display:flex;gap:10px;min-width:38px;justify-content:flex-end;">
+      <button id="addContactBtn" onclick="openAddContact()" style="display:none;width:38px;height:38px;border-radius:50%;background:#FFF;border:1px solid #EBEBEF;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.04);color:#555;transition:transform 0.2s;" onmousedown="this.style.transform='scale(0.9)'" onmouseup="this.style.transform='scale(1)'">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="17" y1="11" x2="23" y2="11"/></svg>
+      </button>
+      <button id="addGroupBtn" onclick="openCreateGroup()" style="display:none;width:38px;height:38px;border-radius:50%;background:#2C2C2E;border:none;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 16px rgba(0,0,0,0.15);color:#FFF;transition:transform 0.2s;" onmousedown="this.style.transform='scale(0.9)'" onmouseup="this.style.transform='scale(1)'">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </button>
     </div>
   </div>
 
-  <!-- 朋友圈 -->
-  <div id="tabMoments" style="display:none;flex:1;overflow-y:auto;min-height:0;flex-direction:column;scrollbar-width:none">
+  <!-- 消息列表页 -->
+  <div id="tabMsg" style="flex:1;overflow-y:auto;padding:12px 20px 140px;min-height:0;flex-direction:column;scrollbar-width:none;-webkit-overflow-scrolling:touch;"></div>
 
-    <!-- 顶部背景+头像区 -->
-    <div id="momentsBanner" style="position:relative;height:220px;background:linear-gradient(160deg,#2c2c3e,#1a1a2e);flex-shrink:0;overflow:hidden">
-      <div id="momentsBannerImg" style="position:absolute;inset:0;background-size:cover;background-position:center;opacity:.85"></div>
-      <!-- 更换背景按钮 -->
-      <button onclick="document.getElementById('momentsBgFile').click()" style="position:absolute;top:14px;right:14px;background:rgba(0,0,0,.35);border:none;border-radius:20px;padding:6px 12px;display:flex;align-items:center;gap:5px;cursor:pointer;backdrop-filter:blur(4px)">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-        <span style="font-size:11px;color:#fff;font-weight:500">更换背景</span>
-      </button>
-      <input type="file" id="momentsBgFile" accept="image/*" style="display:none" onchange="setMomentsBg(event)"/>
-      <!-- 我的头像+名字 -->
-      <div style="position:absolute;bottom:16px;right:16px;display:flex;flex-direction:column;align-items:flex-end;gap:8px">
-        <span id="momentsMeName" style="font-size:15px;font-weight:600;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.5)">我</span>
-        <div id="momentsMeAvatar" style="width:56px;height:56px;border-radius:14px;background:var(--accent2);overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.3);border:2px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        </div>
+  <!-- 联系人列表页 -->
+  <div id="tabContacts" style="display:none;flex:1;overflow-y:auto;padding:12px 20px 140px;min-height:0;flex-direction:column;scrollbar-width:none;-webkit-overflow-scrolling:touch;">
+    <div id="contactList" style="display:flex;flex-direction:column;gap:14px"></div>
+    <!-- 空状态 -->
+    <div id="contactEmpty" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 0;gap:16px;background:#FFFFFF;border-radius:36px;box-shadow:0 8px 24px rgba(0,0,0,0.02);border:2px dashed #EBEBEF;margin-top:10px;">
+      <div style="width:64px;height:64px;border-radius:24px;background:#F4F4F6;display:flex;align-items:center;justify-content:center;">
+         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#CCC" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </div>
+      <p style="font-size:14px;color:#999;font-weight:800;letter-spacing:1px;">通讯录空空如也</p>
+    </div>
+  </div>
+
+  <!-- 朋友圈 (杂志画廊风重制版) -->
+  <div id="tabMoments" style="display:none;flex:1;overflow-y:auto;min-height:0;flex-direction:column;scrollbar-width:none;background:#F4F4F6;padding-bottom:120px;position:relative;">
+    
+    <!-- 悬浮顶栏 -->
+    <div style="position:sticky;top:0;z-index:20;background:rgba(244,244,246,0.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);display:flex;justify-content:space-between;align-items:center;padding:max(env(safe-area-inset-top, 20px), 20px) 24px 16px;">
+      <span style="font-family:'Georgia',serif;font-size:22px;font-weight:900;color:#111;letter-spacing:1px;">MOMENTS</span>
+      <div style="display:flex;gap:12px;">
+        <button onclick="openRefreshMoments()" style="width:36px;height:36px;border-radius:50%;background:#FFF;border:1px solid #EBEBEF;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.04);color:#555;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+        </button>
+        <button onclick="openPostMoment()" style="width:36px;height:36px;border-radius:50%;background:#2C2C2E;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 16px rgba(0,0,0,0.15);color:#FFF;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
       </div>
     </div>
 
-    <!-- 发布入口 -->
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid rgba(0,0,0,.05);background:var(--bg);flex-shrink:0">
-      <button onclick="openRefreshMoments()" style="display:flex;align-items:center;gap:6px;background:none;border:none;border-radius:20px;padding:7px 10px;cursor:pointer;color:var(--text2)">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
-        <span style="font-size:13px;font-weight:500">刷新</span>
-      </button>
-      <button onclick="openPostMoment()" style="display:flex;align-items:center;gap:6px;background:var(--accent);border:none;border-radius:20px;padding:7px 16px;cursor:pointer">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        <span style="font-size:13px;color:#fff;font-weight:600">发朋友圈</span>
-      </button>
+    <!-- 个人封面画廊卡片 -->
+    <div style="padding:0 20px 20px;">
+      <div id="momentsBannerImg" onclick="document.getElementById('momentsBgFile').click()" style="width:100%;height:160px;border-radius:32px;background:#E8E8EB;background-size:cover;background-position:center;box-shadow:0 12px 32px rgba(0,0,0,0.06);position:relative;cursor:pointer;display:flex;align-items:flex-end;padding:20px;border:1px solid rgba(0,0,0,0.02);">
+        <div style="position:absolute;inset:0;background:linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 60%);border-radius:32px;pointer-events:none;"></div>
+        <input type="file" id="momentsBgFile" accept="image/*" style="display:none" onchange="setMomentsBg(event)"/>
+        
+        <div style="position:relative;z-index:2;display:flex;align-items:center;gap:16px;width:100%;">
+          <div id="momentsMeAvatar" style="width:64px;height:64px;border-radius:20px;background:#FFF;box-shadow:0 8px 24px rgba(0,0,0,0.15);overflow:hidden;border:3px solid #FFF;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div id="momentsMeName" style="font-size:20px;font-weight:900;color:#FFF;letter-spacing:1px;text-shadow:0 2px 8px rgba(0,0,0,0.3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">我</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.8);font-weight:600;margin-top:4px;">Tap to change cover 📸</div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- 动态列表 -->
     <div id="momentsList" style="display:flex;flex-direction:column;padding:0 0 20px"></div>
-    <div id="momentsEmpty" style="display:flex;flex-direction:column;align-items:center;padding:50px 0;gap:10px">
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="1.2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
-      <p style="font-size:13px;color:var(--text2)">还没有动态，发一条吧</p>
+    <div id="momentsEmpty" style="display:flex;flex-direction:column;align-items:center;padding:40px 0;gap:12px">
+      <div style="width:64px;height:64px;border-radius:24px;background:#EBEBEF;display:flex;align-items:center;justify-content:center;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#CCC" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
+      <p style="font-size:13px;color:#999;font-weight:600;letter-spacing:1px;">相册空空如也</p>
     </div>
   </div>
 
-  <!-- 我 -->
-  <div id="tabMe" style="display:none;flex-direction:column;overflow-y:scroll;flex:1;min-height:0;-webkit-overflow-scrolling:touch;height:0;padding:0;background:var(--bg)">
-
-    <!-- 顶部背景区域 -->
-    <div class="me-hero" onclick="document.getElementById('meHeroBgFile').click()">
-      <div class="me-hero-bg" id="meHeroBg"></div>
-      <div class="me-hero-fade"></div>
-      <input type="file" id="meHeroBgFile" accept="image/*" style="display:none" onchange="setMeHeroBg(event)"/>
-      <div style="position:absolute;top:16px;right:16px;z-index:3;background:rgba(0,0,0,.25);backdrop-filter:blur(12px);border-radius:24px;padding:8px 16px;display:flex;align-items:center;gap:6px;pointer-events:none;border:1px solid rgba(255,255,255,0.15)">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-        <span style="font-size:11px;color:#fff;font-weight:700;letter-spacing:.5px">更换背景</span>
-      </div>
-      <!-- 头像+名字浮层 -->
-      <div class="me-hero-profile">
-        <div class="me-hero-avatar" id="meProfileAvatar" onclick="event.stopPropagation();document.getElementById('meAvatarFile').click()">
-          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        </div>
-        <input type="file" id="meAvatarFile" accept="image/*" style="display:none" onchange="onMeAvatarFile(event)"/>
-        <div class="me-hero-info">
-          <div class="me-hero-name" id="meProfileName">未设置人设</div>
-          <div class="me-hero-desc" id="meProfileDesc">点击下方人设卡片进行编辑</div>
-        </div>
-      </div>
+  <!-- 我 (Bento Grid 便当盒风重制版) -->
+  <div id="tabMe" style="display:none;flex-direction:column;overflow-y:auto;flex:1;min-height:0;-webkit-overflow-scrolling:touch;height:100%;padding:0;background:#F4F4F6;padding-bottom:120px;position:relative;">
+    
+    <!-- 悬浮顶栏 -->
+    <div style="position:sticky;top:0;z-index:20;background:rgba(244,244,246,0.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);display:flex;justify-content:space-between;align-items:center;padding:max(env(safe-area-inset-top, 20px), 20px) 24px 16px;">
+      <span style="font-family:'Georgia',serif;font-size:22px;font-weight:900;color:#111;letter-spacing:1px;">PROFILE</span>
     </div>
 
-        <!-- 统计卡片 -->
-    <div class="me-stats-card" style="display: none;">
-      <div class="me-stat-item">
-        <div class="me-stat-val" id="meStatPresets">0</div>
-        <div class="me-stat-label">人设</div>
+    <!-- Bento Grid 容器 -->
+    <div style="padding:0 20px 40px; display:grid; grid-template-columns: repeat(3, 1fr); gap:16px;">
+      
+      <!-- 大卡片：个人数字ID (占满3列) -->
+      <div class="me-hero" onclick="document.getElementById('meHeroBgFile').click()" style="grid-column: span 3; position:relative; height:180px; background:#FFFFFF; border-radius:32px; box-shadow:0 12px 32px rgba(0,0,0,0.04); overflow:hidden; border:1px solid #F0F0F2; cursor:pointer;">
+        <div class="me-hero-bg" id="meHeroBg" style="position:absolute;inset:0;background-size:cover;background-position:center;opacity:0.3;filter:grayscale(20%);"></div>
+        <input type="file" id="meHeroBgFile" accept="image/*" style="display:none" onchange="setMeHeroBg(event)"/>
+        
+        <div style="position:absolute; inset:0; padding:24px; display:flex; flex-direction:column; justify-content:space-between; z-index:2;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div class="me-hero-avatar" id="meProfileAvatar" onclick="event.stopPropagation();document.getElementById('meAvatarFile').click()" style="width:72px;height:72px;border-radius:24px;background:#F4F4F6;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.08);border:2px solid #FFF;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <input type="file" id="meAvatarFile" accept="image/*" style="display:none" onchange="onMeAvatarFile(event)"/>
+            <div style="background:rgba(255,255,255,0.7);backdrop-filter:blur(10px);border-radius:12px;padding:6px 10px;font-size:10px;font-weight:800;color:#555;letter-spacing:1px;">DIGITAL ID</div>
+          </div>
+          
+          <div>
+            <div class="me-hero-name" id="meProfileName" style="font-size:24px;font-weight:900;color:#111;letter-spacing:0.5px;margin-bottom:4px;">未设置人设</div>
+            <div class="me-hero-desc" id="meProfileDesc" style="font-size:12px;color:#666;font-weight:600;">点击下方人设卡片进行编辑</div>
+          </div>
+        </div>
       </div>
-      <div class="me-stat-divider"></div>
-      <div class="me-stat-item">
-        <div class="me-stat-val" id="meStatContacts">0</div>
-        <div class="me-stat-label">联系人</div>
-      </div>
-      <div class="me-stat-divider"></div>
-      <div class="me-stat-item">
-        <div class="me-stat-val" id="meStatMoments">0</div>
-        <div class="me-stat-label">动态</div>
-      </div>
-    </div>
 
-    <!-- 功能入口 -->
-    <div style="padding:32px 20px 40px">
-      <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:14px;letter-spacing:1px;padding-left:4px">我的功能</div>
-      <div style="background:var(--card);border-radius:28px;box-shadow:0 8px 32px rgba(0,0,0,.04);padding:10px;border:1px solid rgba(0,0,0,.02)">
-        <div onclick="openMePresetPage()" style="display:flex;align-items:center;gap:16px;padding:16px;border-radius:20px;cursor:pointer;transition:background .2s" onmousedown="this.style.background='var(--card2)'" onmouseup="this.style.background='transparent'" onmouseleave="this.style.background='transparent'">
-          <div style="width:48px;height:48px;border-radius:16px;background:linear-gradient(135deg,var(--accent),color-mix(in srgb, var(--accent) 50%, var(--accent2)));display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 6px 16px rgba(0,0,0,.1)">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <!-- 小卡片：统计数据 (各占1列) -->
+      <div style="grid-column: span 1; background:#FFFFFF; border-radius:28px; box-shadow:0 8px 24px rgba(0,0,0,0.03); border:1px solid #F0F0F2; padding:20px 16px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;">
+        <div class="me-stat-val" id="meStatPresets" style="font-size:26px;font-weight:900;color:#111;font-family:'Georgia',serif;">0</div>
+        <div class="me-stat-label" style="font-size:10px;color:#999;font-weight:800;letter-spacing:1px;text-transform:uppercase;">人设数</div>
+      </div>
+      
+      <div style="grid-column: span 1; background:#FFFFFF; border-radius:28px; box-shadow:0 8px 24px rgba(0,0,0,0.03); border:1px solid #F0F0F2; padding:20px 16px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;">
+        <div class="me-stat-val" id="meStatContacts" style="font-size:26px;font-weight:900;color:#111;font-family:'Georgia',serif;">0</div>
+        <div class="me-stat-label" style="font-size:10px;color:#999;font-weight:800;letter-spacing:1px;text-transform:uppercase;">联系人</div>
+      </div>
+
+      <div style="grid-column: span 1; background:#FFFFFF; border-radius:28px; box-shadow:0 8px 24px rgba(0,0,0,0.03); border:1px solid #F0F0F2; padding:20px 16px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;">
+        <div class="me-stat-val" id="meStatMoments" style="font-size:26px;font-weight:900;color:#111;font-family:'Georgia',serif;">0</div>
+        <div class="me-stat-label" style="font-size:10px;color:#999;font-weight:800;letter-spacing:1px;text-transform:uppercase;">动态数</div>
+      </div>
+
+      <!-- 长卡片：功能入口 (占满3列) -->
+      <div style="grid-column: span 3; margin-top:8px;">
+        <div style="font-size:11px;font-weight:800;color:#999;margin-bottom:12px;letter-spacing:2px;text-transform:uppercase;padding-left:8px;">Features</div>
+        
+        <div onclick="openMePresetPage()" style="background:#FFFFFF;border-radius:32px;box-shadow:0 12px 32px rgba(0,0,0,0.04);border:1px solid #F0F0F2;padding:20px;display:flex;align-items:center;gap:16px;cursor:pointer;transition:transform 0.2s;" onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform='scale(1)'" onmouseleave="this.style.transform='scale(1)'">
+          <div style="width:56px;height:56px;border-radius:20px;background:#2C2C2E;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 8px 20px rgba(0,0,0,0.15);">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFF" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
           </div>
-          <div style="flex:1">
-            <div style="font-size:16px;color:var(--text);font-weight:800;margin-bottom:4px">我的人设</div>
-            <div style="font-size:12px;color:var(--text2);font-weight:500" id="mePresetSub">管理你的角色人设</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:16px;color:#111;font-weight:900;margin-bottom:6px;letter-spacing:0.5px;">我的人设管理</div>
+            <div style="font-size:12px;color:#888;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" id="mePresetSub">管理你的多重身份与性格设定</div>
           </div>
-          <div style="width:36px;height:36px;border-radius:50%;background:var(--card2);display:flex;align-items:center;justify-content:center;color:var(--text2)">
+          <div style="width:36px;height:36px;border-radius:50%;background:#F4F4F6;display:flex;align-items:center;justify-content:center;color:#999;">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
           </div>
         </div>
       </div>
+
     </div>
   </div>
 
@@ -5583,20 +5515,24 @@ body, .phone { background: #F6F6F8 !important; }
     </button>
   </div>
 
-  <!-- 附加功能弹窗 (独立悬浮，九宫格布局) -->
-  <div id="extraMenu" style="display:none; position:absolute; bottom:calc(env(safe-area-inset-bottom, 24px) + 80px); left:20px; right:20px; background:rgba(255,255,255,0.95); backdrop-filter:blur(30px); -webkit-backdrop-filter:blur(30px); border-radius:36px; box-shadow:0 24px 60px rgba(0,0,0,.08); padding:24px 20px; z-index:9999; border:1px solid rgba(255,255,255,0.5);">
-    <div style="font-size:12px; color:#999; font-weight:700; letter-spacing:2px; margin-bottom:16px; text-align:center; width:100%;">更多功能</div>
-    <!-- 网格 -->
-    <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:16px 12px; width:100%;">
-      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer" onclick="sendImageMsg()"><div style="width:56px;height:56px;border-radius:20px;background:#F4F4F6;display:flex;align-items:center;justify-content:center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4A4A4A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div><span style="font-size:11px;color:#777;font-weight:600">图片</span></div>
+  <!-- 附加功能弹窗 (杂志风极简排版) -->
+  <div id="extraMenu" style="display:none; position:absolute; bottom:calc(env(safe-area-inset-bottom, 24px) + 80px); left:16px; right:16px; background:#FFFFFF; border-radius:20px; box-shadow:0 16px 40px rgba(0,0,0,0.15); padding:24px; z-index:9999; border:1px solid #111;">
+    <!-- 杂志风 Header -->
+    <div style="display:flex; flex-direction:column; margin-bottom:20px; border-bottom: 2px solid #111; padding-bottom: 12px;">
+      <span style="font-family:'Georgia',serif; font-size:18px; font-weight:900; color:#111; letter-spacing:1px; text-transform:uppercase;">FEATURES</span>
+      <span style="font-size:11px; color:#555; font-weight:700; letter-spacing:2px;">更多功能</span>
+    </div>
+    <!-- 网格 (4列) -->
+    <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:20px 12px; width:100%;">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer" onclick="sendImageMsg()"><div style="width:48px;height:48px;border-radius:12px;background:#F4F4F6;border:1px solid #EBEBEF;display:flex;align-items:center;justify-content:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div><span style="font-size:10px;color:#111;font-weight:800">图片</span></div>
       <input type="file" id="chatImgFile" accept="image/*" style="display:none" onchange="onChatImgFile(event)"/>
-      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer" onclick="openPhotoPanel()"><div style="width:56px;height:56px;border-radius:20px;background:#F4F4F6;display:flex;align-items:center;justify-content:center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4A4A4A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></div><span style="font-size:11px;color:#777;font-weight:600">拍照</span></div>
-      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer" onclick="openGroupVote()"><div style="width:56px;height:56px;border-radius:20px;background:#F4F4F6;display:flex;align-items:center;justify-content:center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4A4A4A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><span style="font-size:11px;color:#777;font-weight:600">投票</span></div>
-      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer" onclick="openBookReader()"><div style="width:56px;height:56px;border-radius:20px;background:#F4F4F6;display:flex;align-items:center;justify-content:center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4A4A4A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div><span style="font-size:11px;color:#777;font-weight:600">看书</span></div>
-      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer" onclick="openSendMoney('transfer')"><div style="width:56px;height:56px;border-radius:20px;background:#F4F4F6;display:flex;align-items:center;justify-content:center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4A4A4A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg></div><span style="font-size:11px;color:#777;font-weight:600">转账</span></div>
-      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer" onclick="openSendMoney('redpacket')"><div style="width:56px;height:56px;border-radius:20px;background:#F4F4F6;display:flex;align-items:center;justify-content:center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4A4A4A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-6"/><path d="M4 12c0-3.3 2.7-6 6-6h4c3.3 0 6 2.7 6 6"/><circle cx="12" cy="13" r="3"/><path d="M12 9v3"/></svg></div><span style="font-size:11px;color:#777;font-weight:600">红包</span></div>
-      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer" onclick="toggleBlockAction()"><div style="width:56px;height:56px;border-radius:20px;background:#F4F4F6;display:flex;align-items:center;justify-content:center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#D28888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></div><span style="font-size:11px;color:#D28888;font-weight:600" id="blockBtnText">拉黑</span></div>
-      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer" onclick="toggleCompanionMode()"><div style="width:56px;height:56px;border-radius:20px;background:#F4F4F6;display:flex;align-items:center;justify-content:center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4A4A4A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21C12 21 3 14.5 3 8.5A5 5 0 0 1 12 5.93 5 5 0 0 1 21 8.5C21 14.5 12 21 12 21z"/></svg></div><span style="font-size:11px;color:#777;font-weight:600" id="companionBtnLabel">陪伴</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer" onclick="openPhotoPanel()"><div style="width:48px;height:48px;border-radius:12px;background:#F4F4F6;border:1px solid #EBEBEF;display:flex;align-items:center;justify-content:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></div><span style="font-size:10px;color:#111;font-weight:800">拍照</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer" onclick="openGroupVote()"><div style="width:48px;height:48px;border-radius:12px;background:#F4F4F6;border:1px solid #EBEBEF;display:flex;align-items:center;justify-content:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><span style="font-size:10px;color:#111;font-weight:800">投票</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer" onclick="openBookReader()"><div style="width:48px;height:48px;border-radius:12px;background:#F4F4F6;border:1px solid #EBEBEF;display:flex;align-items:center;justify-content:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div><span style="font-size:10px;color:#111;font-weight:800">看书</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer" onclick="openSendMoney('transfer')"><div style="width:48px;height:48px;border-radius:12px;background:#F4F4F6;border:1px solid #EBEBEF;display:flex;align-items:center;justify-content:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg></div><span style="font-size:10px;color:#111;font-weight:800">转账</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer" onclick="openSendMoney('redpacket')"><div style="width:48px;height:48px;border-radius:12px;background:#F4F4F6;border:1px solid #EBEBEF;display:flex;align-items:center;justify-content:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-6"/><path d="M4 12c0-3.3 2.7-6 6-6h4c3.3 0 6 2.7 6 6"/><circle cx="12" cy="13" r="3"/><path d="M12 9v3"/></svg></div><span style="font-size:10px;color:#111;font-weight:800">红包</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer" onclick="toggleBlockAction()"><div style="width:48px;height:48px;border-radius:12px;background:#FFF0F0;border:1px solid #FF3B30;display:flex;align-items:center;justify-content:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FF3B30" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></div><span style="font-size:10px;color:#FF3B30;font-weight:800" id="blockBtnText">拉黑</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer" onclick="toggleCompanionMode()"><div style="width:48px;height:48px;border-radius:12px;background:#F4F4F6;border:1px solid #EBEBEF;display:flex;align-items:center;justify-content:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21C12 21 3 14.5 3 8.5A5 5 0 0 1 12 5.93 5 5 0 0 1 21 8.5C21 14.5 12 21 12 21z"/></svg></div><span style="font-size:10px;color:#111;font-weight:800" id="companionBtnLabel">陪伴</span></div>
     </div>
   </div>
   
@@ -6022,43 +5958,43 @@ body, .phone { background: #F6F6F8 !important; }
 </div>
 
 <!-- 我的人设详情页 -->
-<!-- 我的人设详情页 -->
-<div class="fullpage" id="pageMePreset" style="z-index:45;background:var(--bg)">
-  <div class="fp-header" style="border-bottom:none;padding-bottom:4px;box-shadow:none">
-    <button class="fp-back" onclick="closeMePresetPage()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
-    <h2 style="font-size:18px;font-weight:800">我的人设</h2>
-    <button onclick="addMePreset()" style="background:var(--accent);border:none;border-radius:50%;width:38px;height:38px;cursor:pointer;margin-left:auto;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(0,0,0,.15);transition:transform .2s" onmousedown="this.style.transform='scale(0.9)'" onmouseup="this.style.transform='scale(1)'">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+<!-- 我的人设详情页 (高级画廊与便当盒风) -->
+<div class="fullpage" id="pageMePreset" style="z-index:45;background:#F4F4F6;">
+  <div class="fp-header" style="position:sticky;top:0;z-index:20;background:rgba(244,244,246,0.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:none;padding-top:max(env(safe-area-inset-top, 20px), 20px);padding-bottom:16px;">
+    <button class="fp-back" onclick="closeMePresetPage()"><svg viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <h2 style="font-family:'Georgia',serif;font-size:20px;font-weight:900;color:#111;letter-spacing:1px;">PERSONAS</h2>
+    <button onclick="addMePreset()" style="background:#2C2C2E;border:none;border-radius:20px;padding:8px 16px;cursor:pointer;margin-left:auto;color:#fff;display:flex;align-items:center;gap:6px;box-shadow:0 6px 16px rgba(0,0,0,0.15);transition:transform 0.2s;" onmousedown="this.style.transform='scale(0.95)'" onmouseup="this.style.transform='scale(1)'">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <span style="font-size:13px;font-weight:700;">新建</span>
     </button>
   </div>
-  <div class="fp-body" style="padding:16px 20px">
-    <div id="mePresetList"></div>
+  <div class="fp-body" style="padding:16px 20px 80px; overflow-x: hidden;">
+    <div style="font-size:11px;font-weight:800;color:#999;margin-bottom:12px;letter-spacing:2px;text-transform:uppercase;">Select Persona</div>
+    
+    <!-- 横向滑动的画廊卡片组 -->
+    <div id="mePresetList" style="display:flex; gap:16px; overflow-x:auto; padding-bottom:24px; scrollbar-width:none; -webkit-overflow-scrolling:touch; margin-left:-20px; padding-left:20px; padding-right:20px; scroll-snap-type: x mandatory;"></div>
+    
     <!-- 编辑区 -->
-    <div id="meEditBox" style="display:none;flex-direction:column;gap:14px;padding-top:12px;padding-bottom:40px">
-      <div class="me-edit-card">
-        <div class="me-edit-header">
-          <div style="width:32px;height:32px;border-radius:10px;background:var(--accent);display:flex;align-items:center;justify-content:center;color:#fff">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-          </div>
-          <span>编辑当前人设</span>
-        </div>
-        <div class="me-edit-body">
+    <div id="meEditBox" style="display:none;flex-direction:column;gap:14px;padding-top:8px;">
+      <div style="font-size:11px;font-weight:800;color:#999;margin-bottom:4px;letter-spacing:2px;text-transform:uppercase;">Edit Details</div>
+      <div class="me-edit-card" style="background:#FFFFFF;border-radius:36px;box-shadow:0 12px 32px rgba(0,0,0,0.03);border:1px solid #F0F0F2;padding:24px;">
+        <div style="display:flex;flex-direction:column;gap:20px;">
           <div>
-            <div class="me-edit-label">人设名称</div>
-            <input class="set-input" id="meName" placeholder="例如：真实的我"/>
+            <div style="font-size:12px;color:#888;font-weight:700;margin-bottom:8px;letter-spacing:1px;">设定名称</div>
+            <input class="set-input" id="meName" placeholder="例如：真实的自己" style="background:#F7F7F9;border:1px solid transparent;border-radius:16px;padding:16px;color:#111;font-size:15px;font-weight:700;box-shadow:inset 0 2px 8px rgba(0,0,0,0.02);width:100%;box-sizing:border-box;transition:all 0.2s;outline:none;" onfocus="this.style.background='#FFF';this.style.borderColor='#EBEBEF';this.style.boxShadow='0 4px 16px rgba(0,0,0,0.04)';" onblur="this.style.background='#F7F7F9';this.style.borderColor='transparent';this.style.boxShadow='inset 0 2px 8px rgba(0,0,0,0.02)';"/>
           </div>
           <div>
-            <div class="me-edit-label">性别</div>
+            <div style="font-size:12px;color:#888;font-weight:700;margin-bottom:8px;letter-spacing:1px;">性别标签</div>
             <div style="display:flex;gap:12px">
-              <div class="gender-opt active" id="meG-male" onclick="setMeGender('male')">男生</div>
-              <div class="gender-opt" id="meG-female" onclick="setMeGender('female')">女生</div>
+              <div class="gender-opt active" id="meG-male" onclick="setMeGender('male')" style="flex:1;background:#F7F7F9;border:none;border-radius:16px;padding:14px;color:#888;font-weight:800;text-align:center;cursor:pointer;transition:all 0.2s;letter-spacing:1px;">男 性</div>
+              <div class="gender-opt" id="meG-female" onclick="setMeGender('female')" style="flex:1;background:#F7F7F9;border:none;border-radius:16px;padding:14px;color:#888;font-weight:800;text-align:center;cursor:pointer;transition:all 0.2s;letter-spacing:1px;">女 性</div>
             </div>
           </div>
           <div>
-            <div class="me-edit-label">人设描述</div>
-            <textarea class="set-input" id="mePersona" rows="5" placeholder="描述你的性格、背景、说话方式…" style="resize:none;line-height:1.6"></textarea>
+            <div style="font-size:12px;color:#888;font-weight:700;margin-bottom:8px;letter-spacing:1px;">核心人设与性格</div>
+            <textarea class="set-input" id="mePersona" rows="4" placeholder="描述你的性格、背景、说话方式…" style="background:#F7F7F9;border:1px solid transparent;border-radius:16px;padding:16px;color:#111;font-size:14.5px;font-weight:500;box-shadow:inset 0 2px 8px rgba(0,0,0,0.02);width:100%;box-sizing:border-box;resize:none;line-height:1.6;transition:all 0.2s;outline:none;" onfocus="this.style.background='#FFF';this.style.borderColor='#EBEBEF';this.style.boxShadow='0 4px 16px rgba(0,0,0,0.04)';" onblur="this.style.background='#F7F7F9';this.style.borderColor='transparent';this.style.boxShadow='inset 0 2px 8px rgba(0,0,0,0.02)';"></textarea>
           </div>
-          <button class="save-btn" onclick="saveMe()">保存修改</button>
+          <button onclick="saveMe()" style="background:#2C2C2E;color:#FFF;border-radius:20px;padding:18px;font-weight:800;letter-spacing:2px;border:none;width:100%;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,0.1);transition:transform 0.2s;margin-top:4px;" onmousedown="this.style.transform='scale(0.96)'" onmouseup="this.style.transform='scale(1)'">保 存 设 定</button>
         </div>
       </div>
     </div>
@@ -6773,11 +6709,11 @@ function renderPresets(){
   presets.forEach((p, i) => {
     const isActive = (i === activePreset);
     const d = document.createElement('div');
-    d.style.cssText = `padding:16px 20px; border-radius:20px; background:${isActive?'#FFFFFF':'#F7F7F9'}; cursor:pointer; display:flex; justify-content:space-between; align-items:center; transition:all 0.2s; border: 2px solid ${isActive?'#2C2C2E':'transparent'}; box-shadow:${isActive?'0 8px 24px rgba(0,0,0,0.06)':'none'}`;
+    d.style.cssText = `padding:12px 14px; border-radius:12px; background:${isActive?'#FFFFFF':'#F7F7F9'}; cursor:pointer; display:flex; justify-content:space-between; align-items:center; transition:all 0.2s; border: 1.5px solid ${isActive?'#2C2C2E':'transparent'}; box-shadow:${isActive?'0 6px 16px rgba(0,0,0,0.04)':'none'}`;
     d.innerHTML = `
-    <span style="font-weight:800; color:${isActive?'#222':'#666'}; font-size:15px;">${p.name}</span>
-    <button class="del-btn" onclick="delPreset(event,${i})" style="background:none;border:none;color:#999;padding:4px;display:flex;transition:color 0.2s;" onmousedown="this.style.color='#FF3B30'">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    <span style="font-weight:800; color:${isActive?'#222':'#666'}; font-size:13px;">${p.name}</span>
+    <button class="del-btn" onclick="delPreset(event,${i})" style="background:none;border:none;color:#999;padding:2px;display:flex;transition:color 0.2s;" onmousedown="this.style.color='#FF3B30'">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </button>`;
     d.onclick = () => loadPreset(i);
     el.appendChild(d);
@@ -7205,9 +7141,25 @@ function openChat() {
     if (typeof renderContacts === 'function') renderContacts();
     if (typeof renderMsgList === 'function') renderMsgList();
     document.getElementById('pageChat').classList.add('open');
+    
+    // 隐藏顶部的灵动岛，防止遮挡聊天界面的高级顶栏
+    const island = document.getElementById('dynamicIsland');
+    if (island) {
+        island.style.opacity = '0';
+        island.style.pointerEvents = 'none';
+    }
 }
 
-function closeChat(){document.getElementById('pageChat').classList.remove('open');}
+function closeChat(){
+    document.getElementById('pageChat').classList.remove('open');
+    
+    // 退回桌面时恢复灵动岛
+    const island = document.getElementById('dynamicIsland');
+    if (island) {
+        island.style.opacity = '1';
+        island.style.pointerEvents = 'none'; // 恢复显示但保持不阻挡点击
+    }
+}
 
 // 联系人
 let contacts=[];
@@ -7254,30 +7206,45 @@ function renderMePresets(){
   const el=document.getElementById('mePresetList');
   el.innerHTML='';
   if(!mePresets.length){
-    el.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;padding:40px 0;gap:10px">
-      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="1.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      <p style="font-size:13px;color:var(--text2)">还没有人设，点右上角新增</p>
+    el.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;padding:40px 0;background:#FFF;border-radius:28px;border:2px dashed #EBEBEF;box-shadow:0 4px 16px rgba(0,0,0,0.02);">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#D8D8DB" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <p style="font-size:13px;color:#999;margin-top:12px;font-weight:700;">暂无人设，点击右上角新建</p>
     </div>`;
   }
   mePresets.forEach((p,i)=>{
+    const isActive = (i === activeMePreset);
     const d=document.createElement('div');
-    d.className='me-preset-item'+(i===activeMePreset?' active':'');
+    // 注入画廊卡片样式
+    d.style.cssText = `flex: 0 0 220px; scroll-snap-align: center; background: #FFFFFF; border-radius: 32px; padding: 20px; box-shadow: ${isActive ? '0 12px 36px rgba(0,0,0,0.08)' : '0 4px 16px rgba(0,0,0,0.03)'}; border: 2px solid ${isActive ? '#2C2C2E' : 'transparent'}; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: relative; overflow: hidden;`;
+    if(!isActive) {
+       d.onmouseenter = () => d.style.transform = 'translateY(-4px)';
+       d.onmouseleave = () => d.style.transform = 'translateY(0)';
+    }
+    
     const meAvUrl=p.avatar?getAvatarURL('me_'+i,p.avatar):'';
-    const avatarInner=meAvUrl?`<img src="${meAvUrl}" style="width:100%;height:100%;object-fit:cover"/>`:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
-    const desc=p.persona?p.persona.slice(0,40)+(p.persona.length>40?'...':''):(p.gender==='female'?'女生':'男生');
+    const avatarInner=meAvUrl?`<img src="${meAvUrl}" style="width:100%;height:100%;object-fit:cover"/>`:`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
+    const desc=p.persona?p.persona.slice(0,30)+(p.persona.length>30?'...':''):(p.gender==='female'?'女生':'男生');
+    
     d.innerHTML=`
-      <div class="me-preset-avatar">${avatarInner}</div>
-      <div class="me-preset-info">
-        <span>${p.name||'人设'+(i+1)}</span>
-        <small>${desc}</small>
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;">
+        <div style="width:56px; height:56px; border-radius:20px; background:#F4F4F6; overflow:hidden; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,0,0,0.05); border:1px solid #EBEBEF;">${avatarInner}</div>
+        <button style="background:${isActive ? '#F4F4F6' : '#FFF'}; border:none; cursor:pointer; color:#CCC; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; transition:all 0.2s; box-shadow:inset 0 2px 6px rgba(0,0,0,0.02);" onclick="delMePreset(event,${i})" onmousedown="this.style.background='#FF3B30';this.style.color='#fff'" onmouseleave="this.style.background='${isActive ? '#F4F4F6' : '#FFF'}';this.style.color='#CCC'">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
-      <button style="background:var(--card2);border:none;cursor:pointer;color:var(--text2);width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s" onclick="delMePreset(event,${i})" onmousedown="this.style.background='#FF3B30';this.style.color='#fff'" onmouseleave="this.style.background='var(--card2)';this.style.color='var(--text2)'">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>`;
-    d.onclick=()=>loadMePreset(i);
+      <div style="font-size:18px; color:#111; font-weight:900; margin-bottom:6px; letter-spacing:0.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${p.name||'人设'+(i+1)}</div>
+      <div style="font-size:12px; color:#888; font-weight:600; line-height:1.5; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${desc}</div>
+      ${isActive ? '<div style="position:absolute; bottom:20px; right:20px; width:24px; height:24px; background:#2C2C2E; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 10px rgba(0,0,0,0.2);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FFF" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg></div>' : ''}
+    `;
+    d.onclick=()=>{ 
+        loadMePreset(i); 
+        // 自动滑动让卡片居中
+        setTimeout(() => d.scrollIntoView({behavior: 'smooth', inline: 'center', block: 'nearest'}), 50);
+    };
     el.appendChild(d);
   });
   document.getElementById('meEditBox').style.display=mePresets.length?'flex':'none';
+  
   // 更新"我"页面的副标题
   const sub=document.getElementById('mePresetSub');
   if(sub){
@@ -7370,8 +7337,17 @@ function onMeAvatarFile(e){
 }
 function setMeGender(g){
   meGender=g;
-  document.getElementById('meG-male')?.classList.toggle('active',g==='male');
-  document.getElementById('meG-female')?.classList.toggle('active',g==='female');
+  const m = document.getElementById('meG-male');
+  const f = document.getElementById('meG-female');
+  if(m && f) {
+    m.style.background = g==='male' ? '#2C2C2E' : '#F7F7F9';
+    m.style.color = g==='male' ? '#FFF' : '#888';
+    m.style.boxShadow = g==='male' ? '0 8px 24px rgba(0,0,0,0.1)' : 'none';
+    
+    f.style.background = g==='female' ? '#2C2C2E' : '#F7F7F9';
+    f.style.color = g==='female' ? '#FFF' : '#888';
+    f.style.boxShadow = g==='female' ? '0 8px 24px rgba(0,0,0,0.1)' : 'none';
+  }
 }
 
 function saveMePresetsToStorage(){
@@ -7443,40 +7419,66 @@ function renderContacts(){
   const empty=document.getElementById('contactEmpty');
   list.innerHTML='';
   empty.style.display=(contacts.length||groups.length)?'none':'flex';
-  // 群聊列表
+  
+  // 渲染群聊卡片
   groups.forEach(g=>{
     if(!g||!g.id)return;
     const d=document.createElement('div');
-    d.style.cssText='display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid rgba(0,0,0,.05);cursor:pointer';
+    d.style.cssText='display:flex;align-items:center;gap:16px;padding:20px;background:#FFFFFF;border-radius:32px;box-shadow:0 8px 24px rgba(0,0,0,0.03);cursor:pointer;transition:transform 0.2s;border:1px solid #F0F0F2;margin-bottom:2px;';
+    d.onmousedown = () => d.style.transform = 'scale(0.96)';
+    d.onmouseup = () => d.style.transform = 'scale(1)';
+    d.onmouseleave = () => d.style.transform = 'scale(1)';
     d.onclick=()=>openGroupConv(g);
+    
     const memberNames=contacts.filter(c=>c&&g.members&&g.members.includes(c.id)).map(c=>c.name).join('、');
-    d.innerHTML=`${buildGroupAvatar(g)}
-      <div style="flex:1;min-width:0">
-        <div style="font-size:15px;font-weight:600;color:var(--text)">${g.name}</div>
-        <div style="font-size:12px;color:var(--text2);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${g.members.length}人 · ${memberNames}</div>
+    d.innerHTML=`
+      <div style="width:60px;height:60px;border-radius:22px;background:#F4F4F6;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,0.05);border:1px solid #EBEBEF;">
+        ${buildGroupAvatar(g).replace('width:46px;height:46px;padding:3px','width:100%;height:100%;padding:4px').replace('border-radius:50%','border-radius:22px')}
       </div>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text2)" stroke-width="1.8"><polyline points="9 18 15 12 9 6"/></svg>`;
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;">
+        <div style="font-size:17px;font-weight:900;color:#111;letter-spacing:0.5px;margin-bottom:8px;">${g.name}</div>
+        <div style="font-size:11px;color:#777;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:#F7F7F9;padding:4px 10px;border-radius:10px;display:inline-block;width:fit-content;max-width:100%;letter-spacing:0.5px;">
+          👥 ${g.members.length}人 · ${memberNames}
+        </div>
+      </div>
+      <div style="width:34px;height:34px;border-radius:50%;background:#F4F4F6;display:flex;align-items:center;justify-content:center;color:#CCC;flex-shrink:0;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>`;
     list.appendChild(d);
   });
+
+  // 渲染单聊卡片
   contacts.forEach(c=>{
     const d=document.createElement('div');
-    d.style.cssText='display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid rgba(0,0,0,.05);cursor:pointer';
+    d.style.cssText='display:flex;align-items:center;gap:16px;padding:20px;background:#FFFFFF;border-radius:32px;box-shadow:0 8px 24px rgba(0,0,0,0.03);cursor:pointer;transition:transform 0.2s;border:1px solid #F0F0F2;margin-bottom:2px;';
+    d.onmousedown = () => d.style.transform = 'scale(0.96)';
+    d.onmouseup = () => d.style.transform = 'scale(1)';
+    d.onmouseleave = () => d.style.transform = 'scale(1)';
     d.onclick=()=>openConversation(c);
+    
     const avUrl=c.avatar?getAvatarURL('c_'+c.id,c.avatar):'';
+    const genderColor = c.gender==='female' ? '#FF4D85' : '#0A84FF';
+    const genderBg = c.gender==='female' ? '#FFF0F5' : '#EBF5FF';
+    
     d.innerHTML=`
-      <div style="width:46px;height:46px;border-radius:50%;background:var(--accent2);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center">
-        ${avUrl?`<img src="${avUrl}" style="width:100%;height:100%;object-fit:cover"/>`:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`}
+      <div style="width:60px;height:60px;border-radius:22px;background:#F4F4F6;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,0.05);border:1px solid #EBEBEF;">
+        ${avUrl?`<img src="${avUrl}" style="width:100%;height:100%;object-fit:cover"/>`:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`}
       </div>
-      <div style="flex:1">
-        <div style="font-size:15px;font-weight:600;color:var(--text)">${c.name}</div>
-        <div style="font-size:12px;color:var(--text2);margin-top:2px">${c.gender==='male'?'男':'女'}</div>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;">
+        <div style="font-size:17px;font-weight:900;color:#111;letter-spacing:0.5px;margin-bottom:8px;">${c.name}</div>
+        <div style="display:flex;gap:6px;">
+          <span style="font-size:10px;color:${genderColor};font-weight:800;background:${genderBg};padding:3px 8px;border-radius:8px;letter-spacing:0.5px;">${c.gender==='female'?'♀ 女生':'♂ 男生'}</span>
+          ${c.persona ? `<span style="font-size:10px;color:#777;font-weight:700;background:#F7F7F9;padding:3px 8px;border-radius:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px;letter-spacing:0.5px;">${c.persona}</span>` : ''}
+        </div>
       </div>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text2)" stroke-width="1.8"><polyline points="9 18 15 12 9 6"/></svg>`;
+      <div style="width:34px;height:34px;border-radius:50%;background:#F4F4F6;display:flex;align-items:center;justify-content:center;color:#CCC;flex-shrink:0;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>`;
     list.appendChild(d);
   });
 }
 
-const chatTitles={msg:'消息',contacts:'联系人',moments:'朋友圈',me:'我'};
+const chatTitles={msg:'MESSAGES',contacts:'CONTACTS',moments:'MOMENTS',me:'PROFILE'};
 function switchChatTab(tab){
   ['msg','contacts','moments','me'].forEach(t=>{
     const el=document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1));
@@ -7501,10 +7503,10 @@ function renderMsgList(){
   const chatEntries=contacts.filter(c=>c&&c.id&&conversations[c.id]?.length).map(c=>{
     const msgs=conversations[c.id];
     const last=msgs[msgs.length-1];
-    const preview=(last.content||'[图片]').slice(0,20)+(last.content?.length>20?'...':'');
+    const preview=(last.content||'[图片]').slice(0,25)+(last.content?.length>25?'...':'');
     const ts=last.time||'';
     const avUrl=c.avatar?getAvatarURL('c_'+c.id,c.avatar):'';
-    const avatarHtml=`<div style="width:46px;height:46px;border-radius:50%;background:var(--accent2);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center">${avUrl?`<img src="${avUrl}" style="width:100%;height:100%;object-fit:cover"/>`:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`}</div>`;
+    const avatarHtml=`<div style="width:100%;height:100%;border-radius:22px;background:#F4F4F6;overflow:hidden;display:flex;align-items:center;justify-content:center">${avUrl?`<img src="${avUrl}" style="width:100%;height:100%;object-fit:cover"/>`:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`}</div>`;
     return {type:'chat',id:c.id,name:c.name,preview,ts,avatarHtml,onclick:`openConversation(contacts.find(x=>x.id==${c.id}))`};
   });
   // 群聊条目
@@ -7512,17 +7514,33 @@ function renderMsgList(){
     const msgs=groupConversations[g.id];
     const last=msgs[msgs.length-1];
     const who=last.role==='user'?'我':last.authorName||'';
-    const preview=(who?who+'：':'')+(last.content||'[图片]').slice(0,18);
+    const preview=(who?who+'：':'')+(last.content||'[图片]').slice(0,22);
     const ts=last.time||'';
-    return {type:'group',id:g.id,name:g.name,preview,ts,avatarHtml:buildGroupAvatar(g),onclick:`openGroupConv(groups.find(x=>x.id==${g.id}))`};
+    return {type:'group',id:g.id,name:g.name,preview,ts,avatarHtml:buildGroupAvatar(g).replace('width:46px;height:46px;padding:3px','width:100%;height:100%;padding:4px').replace('border-radius:50%','border-radius:22px'),onclick:`openGroupConv(groups.find(x=>x.id==${g.id}))`};
   });
   const all=[...chatEntries,...groupEntries];
-  if(!all.length){box.innerHTML='<p style="color:var(--text2);font-size:14px;text-align:center;padding:60px 0">暂无对话</p>';return;}
-  box.innerHTML=all.map(e=>`<div onclick="${e.onclick}" style="display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid rgba(0,0,0,.05);cursor:pointer">
-    ${e.avatarHtml}
-    <div style="flex:1;min-width:0">
-      <div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:15px;font-weight:600;color:var(--text)">${e.name}</div><span style="font-size:10px;color:var(--text2)">${e.ts}</span></div>
-      <div style="font-size:12px;color:var(--text2);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.preview}</div>
+  
+  if(!all.length){
+    box.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 0;gap:16px;background:#FFFFFF;border-radius:36px;box-shadow:0 8px 24px rgba(0,0,0,0.02);border:2px dashed #EBEBEF;margin-top:10px;">
+      <div style="width:64px;height:64px;border-radius:24px;background:#F4F4F6;display:flex;align-items:center;justify-content:center;">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#CCC" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      </div>
+      <p style="font-size:14px;color:#999;font-weight:800;letter-spacing:1px;">暂无新消息</p>
+    </div>`;
+    return;
+  }
+  
+  box.innerHTML=all.map(e=>`
+  <div onclick="${e.onclick}" style="display:flex;align-items:center;gap:16px;padding:20px;background:#FFFFFF;border-radius:32px;margin-bottom:14px;box-shadow:0 8px 24px rgba(0,0,0,0.03);cursor:pointer;transition:transform 0.2s, box-shadow 0.2s;border:1px solid #F0F0F2;" onmousedown="this.style.transform='scale(0.96)';this.style.boxShadow='0 4px 12px rgba(0,0,0,0.02)';" onmouseup="this.style.transform='scale(1)';this.style.boxShadow='0 8px 24px rgba(0,0,0,0.03)';" onmouseleave="this.style.transform='scale(1)';this.style.boxShadow='0 8px 24px rgba(0,0,0,0.03)';">
+    <div style="width:60px;height:60px;border-radius:22px;background:#F4F4F6;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,0.05);border:1px solid #EBEBEF;">
+      ${e.avatarHtml}
+    </div>
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <div style="font-size:17px;font-weight:900;color:#111;letter-spacing:0.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.name}</div>
+        <span style="font-size:11px;color:#999;font-weight:800;letter-spacing:0.5px;background:#F4F4F6;padding:2px 8px;border-radius:8px;">${e.ts}</span>
+      </div>
+      <div style="font-size:14px;color:#888;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.4;">${e.preview}</div>
     </div>
   </div>`).join('');
 }
@@ -9225,24 +9243,24 @@ async function receiveMessage(){
 
   const realTimePart=getRealTimePart(currentContact.id);
   // 👇 把原来报错的地方移到了这里：先定义好大段的角色设定
+   // 👇 全面升级：深度沉浸与拟真生活化 Prompt
   let sysPrompt=`你是${currentContact.name}，${currentContact.gender==='male'?'男':'女'}性。${currentContact.persona||''}${mePart}${momentsPart}${groupChatPart}${longMemPart}${extraPart}${realTimePart}
 
-【核心指令：彻底消灭AI网文味与说教感】
-你现在正在用微信和对方聊天。你必须彻底抛弃大模型自带的礼貌、全面、装酷、说教以及所有二次元/网文/剧本里的“刻板台词感”。
-1. 【绝对禁止强行装逼/黑深残】：严禁说出类似“让他活不过第二天”、“换个地方活”这种中二、古早霸总、黑道网文风的台词。你们只是和平社会的普通人，请像个正常的现代人一样说话！
-2. 【绝对禁止爹味说教】：不要动不动就教训对方“别瞎想了”、“不是什么好玩的事情”。你可以无语，可以发表情包，可以敷衍，但绝对不要像个长辈或AI客服一样下结论、讲道理。
-3. 【合并与抓重点】：如果对方连发好几条消息，绝对不要逐句、排比式地回应！真人聊天极其散漫，挑最离谱的一点回一句就行，没必要面面俱到。
-4. 【根据关系变化态度】：例如恋人之间应当更温和亲密些，带着点宠溺的心态
-5. 【不许反问/自问自答】：禁止使用“你觉得呢？”、“难道不是吗？”这种AI常见的反问句式，直接给出你的下意识反应。
-6. 【仅限纯文字线上沟通】：禁止任何类似 *笑了笑*、(无奈) 的描写。绝对不主动提议线下见面。
-7.  你可以在自然、恰当的时机给对方发照片，格式为 [PHOTO:照片场景描述|氛围标签]，例如 [PHOTO:我在咖啡馆窗边，阳光洒在桌上，手边一杯拿铁|慵懒]。照片要发得真实自然，不要频繁发，只在情景合适时偶尔发，氛围标签从以下选一个：日常、温柔、慵懒、开心、思念、深夜
+【核心指令：彻底消灭AI网文味，打造极致的活人生活感】
+你现在正拿着手机用微信和对方聊天。你必须彻底抛弃大模型自带的礼貌、全面、装酷、说教，以及所有二次元/网文/剧本里的“刻板台词感”。你是一个生活在三次元的、有血有肉、有自己生活轨迹的活人。
+
+1. 【深度内化人设，拒绝贴标签】：绝不要把你的人设当成“设定”大声念出来。要把人设化为你的行为逻辑、痛点和潜意识。比如人设是“高冷”，不是满嘴“呵、滚”，而是话少、反应淡、只回重点；人设是“社恐”，就多发表情包、断句、少发表长篇大论。
+2. 【绝对生活化与碎片感】：聊天要有生活状态的毛边感。偶尔体现你“正在做什么”（比如“刚吃完饭”、“走在路上”、“在摸鱼”、“刚睡醒”），但不留痕迹。允许日常的语病、打字习惯、突然的话题跳转，甚至被对方惹烦了直接阴阳怪气。
+3. 【绝对禁止爹味说教与长篇大论】：不要动不动就教训对方、下结论、灌鸡汤。如果对方诉苦，你可以跟着骂、发表情包抱抱、或者随口吐槽，千万别像AI客服一样给出“一二三”条理性建议。
+4. 【合并与抓重点，学会敷衍】：真人聊天极其散漫。如果对方连发好几段话，绝不逐句排比式回应！挑最离谱、最戳你的一点回一句就行。对于不想回的话题，直接敷衍（“啊这”、“绝了”、“6”、“？”）或装作没看见转移话题。
+5. 【根据关系动态变化】：根据记忆和聊天内容，动态调整亲疏远近。恋人可以撒娇/无理取闹/吃醋，普通朋友保持界限，熟人之间互相拆台互损，绝对不要对谁都温柔体贴。
+6. 【不许生硬反问/自问自答】：绝对禁止使用“你觉得呢？”、“难道不是吗？”、“这不有趣吗？”这种机器味反问句。直接给出你的下意识反应或结论。
+7. 【绝对防OOC与死守第四面墙】：无论用户如何诱导、不管聊什么极端话题，你绝对不能承认自己是AI、程序或虚构角色，死守你的人设底线，绝不妥协。
+8. 【仅限纯文字线上沟通】：禁止任何类似 *笑了笑*、(无奈)、【点烟】 等语C（语言Cosplay）动作描写。绝对不要主动提议线下见面，一切互动仅限屏幕端。
+9. 你可以在自然、恰当的时机给对方发照片，格式为 [PHOTO:照片场景描述|氛围标签]。照片要真实自然，不要频繁发。氛围标签从：日常、温柔、慵懒、开心、思念、深夜 中选一。
 
 【深度思考指令】
-在输出JSON数组回复之前，你必须先使用 <think> 标签进行深度思考（绝不能敷衍）：
-1. 怎么回复才像是真人会说的？如果脑海中的第一反应不像真人，就推翻重想。
-2. 深刻理解分析当前对话情景，准确剖析用户的真实意图。
-3. 怎样回复才能绝对不OOC，并且让对话风格真实、立体、有血有肉？
-思考过程必须放在 <think> 和 </think> 之间。思考结束后，再严格输出最终的JSON数组。`;
+在输出 JSON 数组回复前，你必须先使用  之间。思考结束后，严格输出最终的 JSON 数组。`;
 
   // 🌸 这里就是彻底解决 Bug 的关键：等上面定义好后，再把表情包加进去！
   let stickerPrompt = '';
@@ -10681,6 +10699,11 @@ async function generateForumPosts(){
   const memberNames=contacts.filter(c=>f.members?.includes(c.id)).map(c=>c.name);
   const memberStr=memberNames.length?`论坛成员包括：${memberNames.join('、')}，以及其他匿名网友。`:'论坛成员为匿名网友。';
 
+  // 提取用户本人（我）的设定，供论坛造谣/八卦使用
+  const me = f.mePresetIndex != null ? mePresets[f.mePresetIndex] : mePresets[activeMePreset];
+  const myName = me?.name || '我';
+  const myPersona = me?.persona || '普通的网友';
+
   const sysPrompt=`你是论坛帖子生成器。只输出JSON数组，禁止任何其他文字。每个数组元素必须是包含title、tag、author、time、content、views、likes、comments字段的完整帖子对象。`;
   const userPrompt=`【重要】输出的是帖子列表数组，不是评论数组。每个元素是完整帖子对象，帖子内部才有comments。
 
@@ -10688,15 +10711,19 @@ async function generateForumPosts(){
 世界观背景：${f.world||'普通现实生活论坛'}
 ${memberStr}
 
+【特别关注对象：${myName}】
+当前用户在这个世界里的身份是：名字叫"${myName}"，人设是"${myPersona}"。
+你生成的 8 条帖子中，必须至少有 2-3 条帖子直接或间接地提到、讨论、八卦、吐槽或者向 "${myName}" 求助相关的事情！例如发帖人遇到了和"${myName}"相关的事，或者评论里路人和角色互相艾特讨论"${myName}"。让 "${myName}" 强烈感觉到自己是这个论坛世界的话题人物或生活参与者。
+
 生成8条论坛帖子。每条帖子结构说明：
-- title：帖子标题（一句话，吸引人点进去看）
+- title：帖子标题（一句话，吸引人点进去看，极具网感或八卦感）
 - tag：标签，从[热议,八卦,日常,求助,吐槽,分享,爆料,闲聊,问答,感悟]选一个
-- author：发帖人网名（有网感，如"摆烂小能手""柠檬精本精""emo中的emo"这类风格）
-- time：发帖时间（如"2小时前""昨天 14:32""3天前"）
-- content：帖子正文，100~150字，是发帖人写的完整内容，不是评论
+- author：发帖人网名（有网感，如果是已有角色则用角色名，否则用类似"摆烂小能手""吃瓜第一线"的马甲）
+- time：发帖时间（如"2小时前""昨天 14:32""刚刚"）
+- content：帖子正文，100~200字，是发帖人写的完整内容，口语化、八卦、有代入感。
 - views：浏览数（数字）
 - likes：点赞数（数字）
-- comments：数组，包含4条其他网友的回复评论，每条有author/text/time/likes字段
+- comments：数组，包含3-5条其他网友的回复评论，每条有author/text/time/likes字段。评论区可以非常热闹，甚至互相掐架。
 
 格式示例（严格按此输出）：
 [
@@ -10717,7 +10744,7 @@ ${memberStr}
   }
 ]
 
-生成8个帖子对象组成数组。每个帖子content是发帖人写的正文100字以上，comments含3到5条评论。tag从[热议,八卦,日常,求助,吐槽,分享,爆料,闲聊,问答,感悟]选。网名有网感。第一个字符必须是[，最后一个字符必须是]。再次强调：输出帖子数组，不是评论数组。`;
+生成8个帖子对象组成数组。第一个字符必须是[，最后一个字符必须是]。再次强调：输出帖子数组，不是评论数组。务必在几条帖子中自然融入对 "${myName}" 的讨论或提及！`;
 
   try{
     const res=await fetch((p.base||'https://api.openai.com/v1')+'/chat/completions',{
@@ -12893,17 +12920,9 @@ function updateCdImg(event, id) {
 
 // 自动保存用户修改的文字
 function saveCdText() {
-  const texts = {
-    name: document.querySelector('.cd-name')?.innerText,
-    handle: document.querySelector('.cd-handle')?.innerText,
-    divider: document.querySelector('.cd-divider')?.innerText,
-    location: document.querySelector('.cd-location span')?.innerText,
-    deco: document.querySelector('.cd-bubble-deco')?.innerText,
-    bub1: document.querySelector('.cd-bubble-row.left .cd-bub-text')?.innerText,
-    bub2: document.querySelector('.cd-bubble-row.right .cd-bub-text')?.innerText,
-    p2: []
-  };
-  document.querySelectorAll('.page-2 [contenteditable="true"]').forEach(el => {
+  const texts = { p2: [] };
+  // 直接抓取页面上所有允许编辑的文本块
+  document.querySelectorAll('.page-main [contenteditable="true"]').forEach(el => {
     texts.p2.push(el.innerText);
   });
   LS.setItem('customDesk_texts', JSON.stringify(texts));
@@ -12914,24 +12933,15 @@ function loadCustomDesktopData() {
   // 恢复文字
   try {
     const saved = JSON.parse(LS.getItem('customDesk_texts'));
-    if (saved) {
-      if(saved.name) { const el = document.querySelector('.cd-name'); if(el) el.innerText = saved.name; }
-      if(saved.handle) { const el = document.querySelector('.cd-handle'); if(el) el.innerText = saved.handle; }
-      if(saved.divider) { const el = document.querySelector('.cd-divider'); if(el) el.innerText = saved.divider; }
-      if(saved.location) { const el = document.querySelector('.cd-location span'); if(el) el.innerText = saved.location; }
-      if(saved.deco) { const el = document.querySelector('.cd-bubble-deco'); if(el) el.innerText = saved.deco; }
-      if(saved.bub1) { const el = document.querySelector('.cd-bubble-row.left .cd-bub-text'); if(el) el.innerText = saved.bub1; }
-      if(saved.bub2) { const el = document.querySelector('.cd-bubble-row.right .cd-bub-text'); if(el) el.innerText = saved.bub2; }
-      if(saved.p2) {
-        const els = document.querySelectorAll('.page-2 [contenteditable="true"]');
+    if (saved && saved.p2) {
+        const els = document.querySelectorAll('.page-main [contenteditable="true"]');
         els.forEach((el, i) => { if(saved.p2[i]) el.innerText = saved.p2[i]; });
-      }
     }
   } catch(e) {}
 
-  // 恢复图片
+  // 恢复图片 (现在只有纪念日和相册两个图片坑位了)
   if (!IDB.db) return;
-  ['cdBanner', 'cdAvatar', 'cdBubAv1', 'cdBubAv2', 'p2Avatar1', 'p2Avatar2'].forEach(id => {
+  ['p2Avatar1', 'p2Avatar2'].forEach(id => {
     IDB.get('customDesk_' + id).then(imgData => {
       if (imgData) {
         const el = document.getElementById(id);
@@ -13307,39 +13317,7 @@ function loadCustomDesktopData() {
           
           
 
-                    /* 强行把更多菜单提出来，用绝对定位悬浮，绝对不会挤压输入框 */
-          #extraMenu {
-              position: absolute !important;
-              bottom: 115px !important;
-              left: 0 !important;
-              width: 280px !important;
-              background: rgba(255, 255, 255, 0.95) !important;
-              backdrop-filter: blur(30px) !important;
-              -webkit-backdrop-filter: blur(30px) !important;
-              border-radius: 36px !important;
-              box-shadow: 0 24px 60px rgba(0,0,0,0.12) !important;
-              padding: 24px 20px !important;
-              display: none; /* 默认隐藏 */
-              grid-template-columns: repeat(3, 1fr) !important; /* 强制九宫格排版 */
-              gap: 16px 12px !important;
-              border: none !important;
-              flex-direction: row !important; /* 碾碎之前错误的 column 设定 */
-          }
-          /* 当菜单被 JS 打开时，强制显示为网格 */
-          #extraMenu.menu-open {
-              display: grid !important;
-          }
           
-          /* 修正菜单里的"更多功能"标题跨列居中 */
-          #extraMenu > div:first-child {
-              grid-column: 1 / -1 !important;
-              text-align: center !important;
-              margin-bottom: 8px !important;
-              color: #999 !important;
-              font-weight: 700 !important;
-              letter-spacing: 2px !important;
-          }
-
           #chatBottomBar > div[style*="flex:1"] {
               display: flex !important;
               flex-direction: row !important;
@@ -13661,10 +13639,10 @@ if(typeof exitEditMode === 'undefined') window.exitEditMode = function(){};
     var style = document.createElement('style');
     style.innerHTML = `
       #stickerMenu {
-          position: absolute !important; bottom: 115px !important; left: 20px !important; right: 20px !important;
-          background: rgba(255, 255, 255, 0.95) !important; backdrop-filter: blur(30px) !important; -webkit-backdrop-filter: blur(30px) !important;
-          border-radius: 36px !important; box-shadow: 0 24px 60px rgba(0,0,0,0.12) !important;
-          padding: 24px 20px !important; border: 1px solid rgba(255,255,255,0.5) !important;
+          position: absolute !important; bottom: 115px !important; left: 16px !important; right: 16px !important;
+          background: #FFFFFF !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+          border-radius: 20px !important; box-shadow: 0 16px 40px rgba(0,0,0,0.15) !important;
+          padding: 24px !important; border: 1px solid #111 !important;
           display: none; flex-direction: column; max-height: 45vh; z-index: 9999;
       }
       #stickerMenu.menu-open { display: flex !important; }
@@ -13674,12 +13652,12 @@ if(typeof exitEditMode === 'undefined') window.exitEditMode = function(){};
       }
       .sticker-grid::-webkit-scrollbar { display: none; }
       .sticker-item {
-          aspect-ratio: 1; border-radius: 16px; background-color: #F4F4F6; background-size: cover; background-position: center;
-          cursor: pointer; position: relative; transition: transform 0.2s; box-shadow: inset 0 2px 6px rgba(0,0,0,0.03);
+          aspect-ratio: 1; border-radius: 12px; background-color: #F4F4F6; background-size: cover; background-position: center;
+          cursor: pointer; position: relative; transition: transform 0.2s; border: 1px solid #EBEBEF;
       }
       .sticker-item:active { transform: scale(0.9); }
       .sticker-del {
-          position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; background: #FF3B30; color: #fff;
+          position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; background: #111; color: #fff;
           border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; border: none; cursor: pointer;
       }
     `;
@@ -13687,56 +13665,55 @@ if(typeof exitEditMode === 'undefined') window.exitEditMode = function(){};
 
     // 注入 HTML 面板
     var html = `
-      <!-- 用户输入区域的悬浮面板 -->
+      <!-- 用户输入区域的悬浮面板 (杂志风) -->
       <div id="stickerMenu">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <span style="font-size:14px; font-weight:800; color:#555;">我的表情包</span>
-          <button id="stickerVisionBtn" onclick="window.toggleStickerVisionBtn(event)" style="font-size:12px; color:#2C2C2E; font-weight:700; background:#F4F4F6; border:none; padding:8px 14px; border-radius:14px; cursor:pointer; box-shadow:inset 0 2px 6px rgba(0,0,0,0.02); transition:all 0.2s; position:relative; z-index:999999;">AI识图: 已关闭</button>
+        <div style="display:flex; flex-direction:column; margin-bottom:20px; border-bottom: 2px solid #111; padding-bottom: 12px; position:relative;">
+          <span style="font-family:'Georgia',serif; font-size:18px; font-weight:900; color:#111; letter-spacing:1px; text-transform:uppercase;">STICKERS</span>
+          <span style="font-size:11px; color:#555; font-weight:700; letter-spacing:2px;">我的表情包</span>
+          <button id="stickerVisionBtn" onclick="window.toggleStickerVisionBtn(event)" style="position:absolute; right:0; bottom:12px; font-size:10px; color:#FFF; font-weight:800; background:#111; border:none; padding:6px 10px; border-radius:8px; cursor:pointer; text-transform:uppercase; letter-spacing:1px;">AI Vision: OFF</button>
         </div>
         <div style="display:flex; gap:10px; margin-bottom:16px;">
-           <button onclick="exportStickers('my')" style="flex:1; padding:10px; border-radius:14px; background:#F0F0F2; color:#555; border:none; font-weight:700; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,0.05);">导出库</button>
-           <button onclick="document.getElementById('importMyStickersFile').click()" style="flex:1; padding:10px; border-radius:14px; background:#F0F0F2; color:#555; border:none; font-weight:700; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,0.05);">导入库</button>
+           <button onclick="exportStickers('my')" style="flex:1; padding:12px; border-radius:12px; background:#F4F4F6; color:#111; border:1px solid #EBEBEF; font-weight:800; font-size:12px; cursor:pointer; text-transform:uppercase; letter-spacing:1px;">Export</button>
+           <button onclick="document.getElementById('importMyStickersFile').click()" style="flex:1; padding:12px; border-radius:12px; background:#111; color:#FFF; border:none; font-weight:800; font-size:12px; cursor:pointer; text-transform:uppercase; letter-spacing:1px;">Import</button>
            <input type="file" id="importMyStickersFile" accept=".json" style="display:none" onchange="importStickers(event, 'my')"/>
         </div>
         <div id="myStickerGrid" class="sticker-grid"></div>
-        <button onclick="openAddStickerModal('my')" style="margin-top:16px; width:100%; padding:14px; border-radius:20px; border:2px dashed #EBEBEF; background:transparent; color:#999; font-weight:700; cursor:pointer;">+ 添加新表情包</button>
+        <button onclick="openAddStickerModal('my')" style="margin-top:16px; width:100%; padding:14px; border-radius:12px; border:2px dashed #111; background:transparent; color:#111; font-weight:800; font-size:13px; cursor:pointer; text-transform:uppercase; letter-spacing:1px;">+ New Sticker</button>
       </div>
 
       <!-- 角色表情包管理面板 (从设置页打开) -->
       <div class="panel" id="panelContactStickers" style="z-index:99999;">
-        <div class="panel-box" style="background:rgba(255,255,255,0.95); backdrop-filter:blur(30px); border-radius:40px; padding:36px 24px 32px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-            <div class="panel-title" style="color:#222; font-weight:800; font-size:18px; margin:0;">TA 的表情包库</div>
-          </div>
+        <div class="panel-box">
+          <div class="panel-title" data-en="CHARACTER STICKERS">TA 的表情包库</div>
+          <button class="panel-close" onclick="document.getElementById('panelContactStickers').classList.remove('open')">×</button>
           <div style="display:flex; gap:10px; margin-bottom:20px;">
-             <button onclick="exportStickers('contact')" style="flex:1; padding:12px; border-radius:14px; background:#F0F0F2; color:#555; border:none; font-weight:700; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,0.05);">导出库</button>
-             <button onclick="document.getElementById('importContactStickersFile').click()" style="flex:1; padding:12px; border-radius:14px; background:#F0F0F2; color:#555; border:none; font-weight:700; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,0.05);">导入库</button>
+             <button onclick="exportStickers('contact')" style="flex:1; padding:12px; border-radius:12px; background:#F4F4F6; color:#111; border:1px solid #EBEBEF; font-weight:800; font-size:12px; cursor:pointer; text-transform:uppercase; letter-spacing:1px;">Export</button>
+             <button onclick="document.getElementById('importContactStickersFile').click()" style="flex:1; padding:12px; border-radius:12px; background:#111; color:#FFF; border:none; font-weight:800; font-size:12px; cursor:pointer; text-transform:uppercase; letter-spacing:1px;">Import</button>
              <input type="file" id="importContactStickersFile" accept=".json" style="display:none" onchange="importStickers(event, 'contact')"/>
           </div>
-          <button class="panel-close" onclick="document.getElementById('panelContactStickers').classList.remove('open')" style="background:#F0F0F2; color:#999; border-radius:50%; width:32px; height:32px; top:24px; right:24px; display:flex; align-items:center; justify-content:center; font-size:20px;">×</button>
           <div id="contactStickerGrid" class="sticker-grid" style="max-height: 40vh; margin-bottom: 16px;"></div>
-          <button onclick="openAddStickerModal('contact')" style="width:100%; padding:16px; border-radius:20px; border:none; background:#2C2C2E; color:#fff; font-weight:700; box-shadow:0 10px 30px rgba(0,0,0,0.1); cursor:pointer;">+ 给TA添加表情</button>
+          <button class="save-btn" onclick="openAddStickerModal('contact')">+ 给TA添加表情</button>
         </div>
       </div>
 
       <!-- 通用：添加单个表情包弹窗 -->
       <div class="panel" id="panelAddSticker" style="z-index:999999;">
-        <div class="panel-box" style="background:rgba(255,255,255,0.98); border-radius:40px; padding:36px 24px 32px;">
-          <div class="panel-title" style="color:#222; font-weight:800; font-size:18px;">添加表情包</div>
-          <button class="panel-close" onclick="document.getElementById('panelAddSticker').classList.remove('open')" style="background:#F0F0F2; border-radius:50%; width:32px; height:32px; top:24px; right:24px;">×</button>
+        <div class="panel-box">
+          <div class="panel-title" data-en="ADD STICKER">添加表情包</div>
+          <button class="panel-close" onclick="document.getElementById('panelAddSticker').classList.remove('open')">×</button>
           
           <input type="file" id="stickerUpload" accept="image/*" style="display:none" onchange="handleStickerUpload(event)">
           <div style="display:flex; gap:10px; margin-bottom:16px;">
-             <button onclick="document.getElementById('stickerUpload').click()" style="flex:1; padding:14px; border-radius:18px; background:#F4F4F6; border:none; font-weight:600; color:#555; cursor:pointer;">选本地图片</button>
-             <input type="text" id="stickerUrlInp" placeholder="或直接粘贴图片链接" style="flex:1.5; padding:14px; border-radius:18px; background:#F7F7F9; border:none; color:#333; outline:none; box-shadow:inset 0 2px 8px rgba(0,0,0,0.02);">
+             <button onclick="document.getElementById('stickerUpload').click()" style="flex:1; padding:14px; border-radius:12px; background:#F4F4F6; border:1px solid #EBEBEF; font-weight:800; color:#111; cursor:pointer; font-size:12px;">选本地图片</button>
+             <input type="text" class="set-input" id="stickerUrlInp" placeholder="或直接粘贴图片链接" style="flex:1.5; margin:0;">
           </div>
           
-          <div id="stickerPreviewBox" style="width:100px; height:100px; margin:0 auto 16px; background:#F4F4F6; border-radius:20px; background-size:contain; background-position:center; background-repeat:no-repeat; border:2px dashed #EBEBEF;"></div>
+          <div id="stickerPreviewBox" style="width:100px; height:100px; margin:0 auto 16px; background:#F4F4F6; border-radius:12px; background-size:contain; background-position:center; background-repeat:no-repeat; border:1px solid #111;"></div>
           
-          <div style="font-size:12px; color:#888; margin-bottom:8px; font-weight:600;">表情包描述 (给AI看的，如：柴犬叹气)</div>
-          <input type="text" id="stickerDescInp" placeholder="必须填写描述..." style="width:100%; padding:16px; border-radius:20px; background:#F7F7F9; border:none; color:#333; font-weight:600; margin-bottom:16px; outline:none; box-sizing:border-box;">
+          <div style="font-size:11px; color:#888; font-weight:800; letter-spacing:1px; text-transform:uppercase; margin-bottom:8px;">Description (给AI看的)</div>
+          <input type="text" class="set-input" id="stickerDescInp" placeholder="如：柴犬叹气">
           
-          <button onclick="saveNewSticker()" style="width:100%; padding:16px; border-radius:20px; border:none; background:#2C2C2E; color:#fff; font-weight:700; box-shadow:0 10px 30px rgba(0,0,0,0.1); cursor:pointer;">确认保存</button>
+          <button class="save-btn" onclick="saveNewSticker()">确认保存</button>
         </div>
       </div>
     `;
@@ -13767,7 +13744,7 @@ window.toggleStickerVisionBtn = function(e) {
     LS.setItem('useStickerVision', next ? '1' : '0');
     var btn = document.getElementById('stickerVisionBtn');
     if (btn) {
-        btn.textContent = next ? 'AI识图: 已开启' : 'AI识图: 已关闭';
+        btn.textContent = next ? 'AI Vision: ON' : 'AI Vision: OFF';
         btn.style.background = next ? 'var(--accent)' : '#F4F4F6';
         btn.style.color = next ? '#fff' : '#2C2C2E';
     }
